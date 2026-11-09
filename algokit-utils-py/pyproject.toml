@@ -18,7 +18,7 @@ dependencies = [
 [dependency-groups]
 dev = [
   "pytest>=9.0.3,<10",
-  "ruff>=0.1.6,<=0.11.8",
+  "ruff>=0.1.6,<=0.17.4",
   "pip-audit>=2.5.6,<3",
   "pip>=26.1.2,<27",        # patched version; pulled transitively via pip-audit (pip-api)
   "pygments>=2.20.0,<3",    # direct dev dep to keep pip-audit off a vulnerable version

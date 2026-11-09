@@ -1,0 +1,95 @@
+name: Release package
+description: >-
+  Merge a package's changelog fragments, bump its version, build it, and commit,
+  tag and create a GitHub release for it. Publishing to PyPI and rolling back are
+  left to the calling job (see `release.yml`).
+
+# This is a composite action rather than a reusable workflow because PyPI
+# trusted publishing doesn't support reusable workflows: `pypa/gh-action-pypi-publish`
+# has to run in a job of the top-level workflow. Keeping it, and the semfrag
+# rollback, in the same job as these steps means a failed upload still rolls
+# back the release. The prepare and publish steps share state with the rollback
+# through the job environment.
+
+inputs:
+  package:
+    description: Directory of the package, e.g. `algokit-utils-py`
+    required: true
+  tag-prefix:
+    description: Prefix of the package's release tags, e.g. `algokit-utils-v`
+    required: true
+  prerelease:
+    description: Prerelease channel (`beta`), or empty for a stable release
+    required: false
+    default: ""
+  token:
+    description: Token used to push the release commit and create the GitHub release
+    required: true
+
+outputs:
+  released:
+    description: "`true` if a new version was released"
+    value: ${{ steps.semfrag.outputs.released }}
+  version:
+    description: The released version, e.g. `4.2.4-beta.5`
+    value: ${{ steps.semfrag.outputs.version }}
+  commit-sha:
+    description: The release commit, or empty if nothing was released
+    value: ${{ steps.publish.outputs.commit-sha }}
+
+runs:
+  using: composite
+  steps:
+    - name: Verify main has not advanced
+      shell: bash
+      run: |
+        set -euo pipefail
+        expected="$(git rev-parse HEAD)"
+        actual="$(git ls-remote --exit-code origin refs/heads/main | cut -f1)"
+        if [ "$actual" != "$expected" ]; then
+          echo "::error::main has changed since the validated release commit. Stop this run and release from a newly validated commit."
+          exit 1
+        fi
+        # If main advances after this check, the publish action's ordinary
+        # (non-force) push rejects the release rather than incorporating it.
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+
+    - name: Prepare release
+      id: semfrag
+      uses: joe-p/semfrag/actions/prepare@52b58d46a190e343201a202c9b4aab993e58b7b4 # v0.11.1
+      with:
+        changelog: ${{ inputs.package }}/CHANGELOG.md
+        fragments-dir: ${{ inputs.package }}/changelog.d
+        prerelease: ${{ inputs.prerelease }}
+
+    # Writes the PEP 440 form of the version (e.g. `4.2.4b5`) to pyproject.toml
+    # and updates the package's own entry in uv.lock.
+    - name: Bump pyproject.toml version
+      if: steps.semfrag.outputs.released == 'true'
+      shell: bash
+      working-directory: ${{ inputs.package }}
+      env:
+        VERSION: ${{ steps.semfrag.outputs.version }}
+      run: uv version --no-sync "${VERSION}"
+
+    # Built before anything is pushed, so a failing build doesn't need a
+    # rollback.
+    - name: Build
+      if: steps.semfrag.outputs.released == 'true'
+      shell: bash
+      working-directory: ${{ inputs.package }}
+      run: uv build
+
+    - name: Commit, tag and create GitHub release
+      id: publish
+      if: steps.semfrag.outputs.released == 'true'
+      uses: joe-p/semfrag/actions/publish@52b58d46a190e343201a202c9b4aab993e58b7b4 # v0.11.1
+      with:
+        branch: main
+        tag-prefix: ${{ inputs.tag-prefix }}
+        assets: ${{ inputs.package }}/dist/*
+        git-user-name: engineering-ci[bot]
+        git-user-email: 179917785+engineering-ci[bot]@users.noreply.github.com
+        token: ${{ inputs.token }}

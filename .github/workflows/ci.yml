@@ -1,0 +1,161 @@
+name: CI
+
+on:
+  workflow_call:
+
+# Permissions are inherited from the caller: `pr.yml` adds `pull-requests:
+# write` for the coverage comment, which `release.yml` doesn't grant, so it
+# can't be requested here.
+
+# Each package is its own uv project with its own `uv.lock` and supported
+# Python versions, so every job runs in the package's directory. The matrices
+# keep each package's previous CI coverage.
+jobs:
+  check:
+    name: Check ${{ matrix.package }} (Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - package: algokit-utils-py
+            python: "3.10"
+            docstrings: true
+          - package: algokit-client-generator-py
+            python: "3.10"
+          - package: algokit-client-generator-py
+            python: "3.11"
+          - package: algokit-client-generator-py
+            python: "3.12"
+          - package: algokit-subscriber-py
+            python: "3.12"
+            docstrings: true
+    defaults:
+      run:
+        working-directory: ${{ matrix.package }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Set up Python environment
+        uses: algorandfoundation/algokit-shared-config/.github/actions/setup-algokit-python@main
+        with:
+          python-version: ${{ matrix.python }}
+          install-algokit: "false"
+          working-directory: ${{ matrix.package }}
+
+      # If a vulnerability is found in a dev dependency without an available
+      # fix, it can be temporarily ignored with `--ignore-vuln <id>`.
+      - name: Audit with pip-audit
+        run: uv run --no-sync pip-audit
+
+      - name: Check formatting with Ruff
+        run: uv run ruff format --check .
+
+      - name: Check linting with Ruff
+        run: uv run ruff check .
+
+      - name: Check types with mypy
+        run: uv run mypy
+
+      - name: Check docstrings
+        if: matrix.docstrings
+        run: uv run poe docstrings-check
+
+  test:
+    name: Test ${{ matrix.package }} (Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - package: algokit-utils-py
+            python: "3.10"
+            pytest-args: -n auto
+            coverage-comment: true
+          - package: algokit-utils-py
+            python: "3.11"
+            pytest-args: -n auto
+          - package: algokit-utils-py
+            python: "3.12"
+            pytest-args: -n auto
+          - package: algokit-client-generator-py
+            python: "3.10"
+            pytest-args: -n auto
+            coverage-comment: true
+          - package: algokit-client-generator-py
+            python: "3.11"
+            pytest-args: -n auto
+          - package: algokit-client-generator-py
+            python: "3.12"
+            pytest-args: -n auto
+          # Subscriber's tests run serially (no pytest-xdist): they are
+          # live-LocalNet integration tests with round-based assertions and are
+          # not parallel-safe.
+          - package: algokit-subscriber-py
+            python: "3.12"
+            coverage-comment: true
+          - package: algokit-subscriber-py
+            python: "3.13"
+          - package: algokit-subscriber-py
+            python: "3.14"
+    defaults:
+      run:
+        working-directory: ${{ matrix.package }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Set up Python environment
+        uses: algorandfoundation/algokit-shared-config/.github/actions/setup-algokit-python@main
+        with:
+          python-version: ${{ matrix.python }}
+          install-algokit: "false"
+          working-directory: ${{ matrix.package }}
+
+      - name: pytest + coverage
+        env:
+          PYTEST_ARGS: ${{ matrix.pytest-args }}
+        run: |
+          set -o pipefail
+          uvx algokit localnet start
+          # shellcheck disable=SC2086 # PYTEST_ARGS is intentionally split
+          uv run pytest $PYTEST_ARGS --junitxml=pytest-junit.xml --cov-report=term-missing:skip-covered --cov=src | tee pytest-coverage.txt
+          uvx algokit localnet stop
+
+      - name: pytest coverage comment
+        if: matrix.coverage-comment
+        uses: MishaKav/pytest-coverage-comment@dd5b80bde6d16941f336518e92929e89069d8451 # v1.7.2
+        continue-on-error: true # forks fail to add a comment, so continue any way
+        with:
+          title: ${{ matrix.package }} coverage
+          unique-id-for-comment: ${{ matrix.package }}
+          pytest-coverage-path: ${{ matrix.package }}/pytest-coverage.txt
+          junitxml-path: ${{ matrix.package }}/pytest-junit.xml
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: test-results-${{ matrix.package }}-python-${{ matrix.python }}
+          path: ${{ matrix.package }}/pytest-junit.xml
+          retention-days: 30
+
+      - name: Build package distribution
+        run: uv build
+
+  docs:
+    name: Build docs ${{ matrix.package }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [algokit-utils-py, algokit-subscriber-py]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Build docs
+        uses: ./.github/actions/build-docs
+        with:
+          package: ${{ matrix.package }}

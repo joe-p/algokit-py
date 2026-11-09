@@ -23,7 +23,6 @@ dev = [
     "pytest",
     "pytest-cov",
     "pip-audit>=2.5.5,<3",
-    "python-semantic-release>=10,<11",
     "pre-commit>=3.3.2,<5.0.0",
     "poethepoet>=0.20,<0.37",
     "pytest-xdist>=3.5.0,<4",
@@ -122,18 +121,6 @@ suppress-none-returning = true
 [tool.poe.tasks]
 update-approvals = "uv run python -m scripts.update_approvals"
 
-[tool.poe.tasks.release-preview]
-sequence = [
-    # `git describe` only sees tags in the history of HEAD; `--print-last-released-tag` also reports the v3 line tags
-    { cmd = "git describe --tags --abbrev=0" },
-    { cmd = "uv run semantic-release version --print-tag --as-prerelease" },
-]
-help = "Preview current and next prerelease version"
-
-[tool.poe.tasks.release-dry-run-beta]
-shell = "uv run semantic-release --noop -vv version --as-prerelease --prerelease-token beta --print-tag"
-help = "Dry-run beta release (no changes made)"
-
 [tool.pytest.ini_options]
 pythonpath = ["src", "tests"]
 
@@ -152,35 +139,3 @@ disallow_any_generics = false
 implicit_reexport = false
 show_error_codes = true
 disable_error_code = ['return']
-
-[tool.semantic_release]
-version_toml = ["pyproject.toml:project.version"]
-build_command = "uv build"
-major_on_zero = true
-commit_message = "{version}\n\nskip-checks: true"
-tag_format = "v{version}"
-
-[tool.semantic_release.branches.main]
-match = "main"
-prerelease_token = "beta"
-prerelease = false
-
-[tool.semantic_release.commit_parser_options]
-allowed_tags = [
-    "build",
-    "chore",
-    "ci",
-    "docs",
-    "feat",
-    "fix",
-    "perf",
-    "style",
-    "refactor",
-    "test",
-]
-minor_tags = ["feat"]
-patch_tags = ["fix", "perf", "build", "chore", "refactor"]
-
-[tool.semantic_release.remote]
-type = "github"
-token = { env = "GH_TOKEN" }

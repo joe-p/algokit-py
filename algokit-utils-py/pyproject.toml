@@ -24,10 +24,8 @@ dev = [
   "pygments>=2.20.0,<3",    # direct dev dep to keep pip-audit off a vulnerable version
   "requests>=2.33.0,<3",    # direct dev dep to keep pip-audit off a vulnerable version
   "filelock>=3.20.1,<4",    # direct dev dep to keep pip-audit off a vulnerable version
-  "gitpython>=3.1.58,<4",   # direct dev dep to keep pip-audit off a vulnerable version
   "pytest-mock>=3.14,<4",
   "mypy>=1.5.1,<2",
-  "python-semantic-release>=10,<11",
   "pytest-cov>=6,<7",
   "pre-commit>=3.4.0,<4",
   "python-dotenv>=1.0.0,<2",
@@ -182,35 +180,3 @@ disallow_untyped_calls = false
 [[tool.mypy.overrides]]
 module = ["tests.transactions.test_transaction_composer"]
 disable_error_code = ["call-overload", "union-attr"]
-
-[tool.semantic_release]
-version_toml = ["pyproject.toml:project.version"]
-build_command = "uv build"
-major_on_zero = true
-commit_message = "{version}\n\nskip-checks: true"
-tag_format = "v{version}"
-
-[tool.semantic_release.branches.main]
-match = "main"
-prerelease_token = "beta"
-prerelease = false
-
-[tool.semantic_release.commit_parser_options]
-allowed_tags = [
-  "build",
-  "chore",
-  "ci",
-  "docs",
-  "feat",
-  "fix",
-  "perf",
-  "style",
-  "refactor",
-  "test",
-]
-minor_tags = ["feat"]
-patch_tags = ["fix", "perf", "build", "chore", "refactor"]
-
-[tool.semantic_release.remote]
-type = "github"
-token = { env = "GH_TOKEN" }

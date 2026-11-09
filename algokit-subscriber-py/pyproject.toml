@@ -21,7 +21,6 @@ dev = [
     "poethepoet>=0.36.0",
     "pytest-sugar>=1.0.0",
     "pip-audit>=2.9.0",
-    "python-semantic-release>=10.5.3",
     "sphinx>=8.0.0,<9",
     "sphinx-autoapi>=3.4.0,<4",
     "sphinx-markdown-builder>=0.6.8,<0.7",
@@ -138,46 +137,3 @@ docs-dev         = { shell = "python docs/api_build.py && pnpm --dir docs dev" }
 docs-build       = { shell = "python docs/api_build.py && pnpm --dir docs build" }
 docs-preview     = { shell = "pnpm --dir docs preview" }
 docstrings-check = "pydoclint src --style sphinx --arg-type-hints-in-docstring false --check-return-types false"
-
-[tool.poe.tasks.release-preview]
-sequence = [
-  { cmd = "uv run semantic-release version --print-last-released-tag" },
-  { cmd = "uv run semantic-release version --print-tag --as-prerelease" },
-]
-help = "Preview current and next prerelease version"
-
-[tool.poe.tasks.release-dry-run-beta]
-shell = "uv run semantic-release --noop -vv version --as-prerelease --prerelease-token beta --print-tag"
-help = "Dry-run beta release (no changes made)"
-
-[tool.semantic_release]
-version_toml = ["pyproject.toml:project.version"]
-build_command = "uv build"
-major_on_zero = true
-commit_message = "{version}\n\nskip-checks: true"
-tag_format = "v{version}"
-
-[tool.semantic_release.branches.main]
-match = "main"
-prerelease_token = "beta"
-prerelease = false
-
-[tool.semantic_release.commit_parser_options]
-allowed_tags = [
-    "build",
-    "chore",
-    "ci",
-    "docs",
-    "feat",
-    "fix",
-    "perf",
-    "style",
-    "refactor",
-    "test",
-]
-minor_tags = ["feat"]
-patch_tags = ["fix", "perf", "build", "chore", "refactor"]
-
-[tool.semantic_release.remote]
-type = "github"
-token = { env = "GH_TOKEN" }

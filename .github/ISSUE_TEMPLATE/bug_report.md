@@ -6,6 +6,10 @@ labels: bug
 assignees: ''
 ---
 
+### Package
+
+<!-- Which package is this about? algokit-utils-py, algokit-client-generator-py or algokit-subscriber-py -->
+
 ### Subject of the issue
 
 <!-- Describe your issue here. -->
@@ -13,7 +17,7 @@ assignees: ''
 ### Your environment
 
 <!--
-* Please provide the output of `algokit doctor` command response,
+* Please provide the version of the package used and output of `algokit doctor` command response,
 * This will give us a good idea about your environment
 -->
 

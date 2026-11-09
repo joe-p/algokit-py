@@ -1,0 +1,35 @@
+repos:
+    - repo: local
+      hooks:
+          - id: ruff-format
+            name: ruff-format
+            description: "Run 'ruff format' for extremely fast Python formatting"
+            entry: uv run ruff format
+            language: system
+            types: [python]
+            exclude: ^(docs/|examples/)
+            args: []
+            require_serial: true
+            additional_dependencies: []
+            minimum_pre_commit_version: "0"
+          - id: ruff
+            name: ruff
+            description: "Run 'ruff' for extremely fast Python linting"
+            entry: uv run ruff check
+            language: system
+            "types": [python]
+            exclude: ^(docs/|examples/)
+            args: [--fix]
+            require_serial: false
+            additional_dependencies: []
+            minimum_pre_commit_version: "0"
+          - id: mypy
+            name: mypy
+            description: "`mypy` will check Python types for correctness"
+            entry: uv run mypy
+            language: system
+            types_or: [python, pyi]
+            exclude: ^(docs/|examples/|dist/)
+            require_serial: true
+            additional_dependencies: []
+            minimum_pre_commit_version: "2.9.2"

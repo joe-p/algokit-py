@@ -1,0 +1,14 @@
+.idea
+__pycache__
+.DS_Store
+
+/docs/_build/
+/docs/apidocs/
+
+.coverage
+coverage.xml
+.venv*
+
+/dist
+
+.dmypy.json

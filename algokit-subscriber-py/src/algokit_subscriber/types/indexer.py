@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Any, TypedDict
 
-from typing_extensions import NotRequired  # noqa: UP035
+from typing_extensions import NotRequired
 
 # TODO: Typing
 TealKeyValue = dict[str, Any]

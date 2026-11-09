@@ -16,7 +16,7 @@ from algosdk.transaction import (
     SuggestedParams,
     Transaction,
 )
-from typing_extensions import NotRequired  # noqa: UP035
+from typing_extensions import NotRequired
 
 from .types.block import (
     Block,

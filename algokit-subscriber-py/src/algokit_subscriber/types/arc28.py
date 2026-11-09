@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from typing import Any, TypedDict
 
-from typing_extensions import NotRequired  # noqa: UP035
+from typing_extensions import NotRequired
 
 from .indexer import TransactionResult
 

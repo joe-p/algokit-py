@@ -1,0 +1,94 @@
+# pre-commit only reads this file at the repository root, so it runs each
+# package's hooks with that package's own uv environment and configuration.
+# Install the git hook with: uv run --project algokit-utils-py pre-commit install
+repos:
+  - repo: local
+    hooks:
+      # algokit-utils-py
+      - id: utils-ruff-format
+        name: ruff-format (algokit-utils-py)
+        entry: uv run --project algokit-utils-py ruff format
+        language: system
+        types: [python]
+        files: "^algokit-utils-py/(src|tests)/"
+        require_serial: true
+      - id: utils-ruff
+        name: ruff (algokit-utils-py)
+        entry: uv run --project algokit-utils-py ruff check
+        language: system
+        types: [python]
+        args: [--fix]
+        files: "^algokit-utils-py/(src|tests)/"
+        exclude: "^algokit-utils-py/tests/artifacts/"
+      - id: utils-mypy
+        name: mypy (algokit-utils-py)
+        entry: bash -c 'cd algokit-utils-py && uv run mypy'
+        language: system
+        types_or: [python, pyi]
+        files: "^algokit-utils-py/(src|tests)/"
+        exclude: "^algokit-utils-py/tests/artifacts/"
+        require_serial: true
+        pass_filenames: false
+      - id: utils-docstrings-check
+        name: docstrings-check (algokit-utils-py)
+        entry: bash -c 'cd algokit-utils-py && uv run poe docstrings-check'
+        language: system
+        types: [python]
+        files: "^algokit-utils-py/src/"
+        pass_filenames: false
+      # algokit-client-generator-py
+      - id: client-generator-ruff-format
+        name: ruff-format (algokit-client-generator-py)
+        entry: uv run --project algokit-client-generator-py ruff format
+        language: system
+        types: [python]
+        files: "^algokit-client-generator-py/"
+        exclude: "^algokit-client-generator-py/(docs|examples)/"
+        require_serial: true
+      - id: client-generator-ruff
+        name: ruff (algokit-client-generator-py)
+        entry: uv run --project algokit-client-generator-py ruff check
+        language: system
+        types: [python]
+        args: [--fix]
+        files: "^algokit-client-generator-py/"
+        exclude: "^algokit-client-generator-py/(docs|examples)/"
+      - id: client-generator-mypy
+        name: mypy (algokit-client-generator-py)
+        entry: bash -c 'cd algokit-client-generator-py && uv run mypy'
+        language: system
+        types_or: [python, pyi]
+        files: "^algokit-client-generator-py/"
+        exclude: "^algokit-client-generator-py/(docs|examples|dist)/"
+        require_serial: true
+        pass_filenames: false
+      # algokit-subscriber-py
+      - id: subscriber-ruff-format
+        name: ruff-format (algokit-subscriber-py)
+        entry: uv run --project algokit-subscriber-py ruff format
+        language: system
+        types: [python]
+        files: "^algokit-subscriber-py/(src|tests|examples)/"
+        require_serial: true
+      - id: subscriber-ruff
+        name: ruff (algokit-subscriber-py)
+        entry: uv run --project algokit-subscriber-py ruff check
+        language: system
+        types: [python]
+        args: [--fix]
+        files: "^algokit-subscriber-py/(src|tests|examples)/"
+      - id: subscriber-mypy
+        name: mypy (algokit-subscriber-py)
+        entry: bash -c 'cd algokit-subscriber-py && uv run mypy'
+        language: system
+        types_or: [python, pyi]
+        files: "^algokit-subscriber-py/(src|examples)/"
+        require_serial: true
+        pass_filenames: false
+      - id: subscriber-docstrings-check
+        name: docstrings-check (algokit-subscriber-py)
+        entry: bash -c 'cd algokit-subscriber-py && uv run poe docstrings-check'
+        language: system
+        types: [python]
+        files: "^algokit-subscriber-py/src/"
+        pass_filenames: false

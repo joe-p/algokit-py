@@ -1,0 +1,6 @@
+# Package-specific entries live in each package's .gitignore.
+.DS_Store
+.idea/
+.venv/
+__pycache__/
+node_modules/

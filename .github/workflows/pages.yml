@@ -1,0 +1,70 @@
+name: Docs
+
+# Builds every package's docs site and publishes them together to GitHub Pages,
+# each under its own sub-path (e.g. `<pages url>/utils/`), with a landing page
+# at the root linking to them.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    # Skip pushes by the release bot, which are release commits and their
+    # rollbacks.
+    if: ${{ github.event_name != 'push' || github.actor != 'engineering-ci[bot]' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      # Provides the Pages URL (custom domain or `<owner>.github.io/<repo>`) so
+      # the sites are built for wherever they're served.
+      - name: Configure Pages
+        id: pages
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+
+      - name: Build utils docs
+        uses: ./.github/actions/build-docs
+        with:
+          package: algokit-utils-py
+          docs-site: ${{ steps.pages.outputs.origin }}
+          docs-base: ${{ steps.pages.outputs.base_path }}/utils/
+
+      - name: Build subscriber docs
+        uses: ./.github/actions/build-docs
+        with:
+          package: algokit-subscriber-py
+          docs-site: ${{ steps.pages.outputs.origin }}
+          docs-base: ${{ steps.pages.outputs.base_path }}/subscriber/
+
+      - name: Assemble site
+        run: |
+          mkdir -p _site
+          cp -r algokit-utils-py/docs/dist _site/utils
+          cp -r algokit-subscriber-py/docs/dist _site/subscriber
+          cp .github/pages/index.html _site/
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5

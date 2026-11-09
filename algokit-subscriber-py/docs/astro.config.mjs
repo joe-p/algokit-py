@@ -4,9 +4,12 @@ import { defineConfig } from "astro/config";
 import remarkGithubAlerts from "remark-github-alerts";
 import sidebar from "./sidebar.config.json";
 
+// The combined GitHub Pages deployment sets DOCS_SITE and DOCS_BASE to serve this site under a sub-path.
+const base = process.env.DOCS_BASE || "/algokit-subscriber-py/";
+
 export default defineConfig({
-  site: "https://algorandfoundation.github.io",
-  base: "/algokit-subscriber-py/",
+  site: process.env.DOCS_SITE || "https://algorandfoundation.github.io",
+  base,
   trailingSlash: "always",
   markdown: {
     remarkPlugins: [remarkGithubAlerts],
@@ -25,7 +28,7 @@ export default defineConfig({
         {
           icon: "github",
           label: "GitHub",
-          href: "https://github.com/algorandfoundation/algokit-subscriber-py",
+          href: "https://github.com/algorandfoundation/algokit-py/tree/main/algokit-subscriber-py",
         },
         {
           icon: "discord",

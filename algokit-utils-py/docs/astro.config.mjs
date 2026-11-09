@@ -3,14 +3,18 @@ import starlight from "@astrojs/starlight";
 import { defineConfig } from "astro/config";
 import remarkGithubAlerts from "remark-github-alerts";
 import sidebar from "./sidebar.config.json";
+import remarkRebaseLinks from "./plugins/remark-rebase-links.mjs";
+
+// The combined GitHub Pages deployment sets DOCS_SITE and DOCS_BASE to serve this site under a sub-path.
+const base = process.env.DOCS_BASE || "/algokit-utils-py/";
 
 // https://astro.build/config
 export default defineConfig({
-  site: "https://algorandfoundation.github.io",
-  base: "/algokit-utils-py/",
+  site: process.env.DOCS_SITE || "https://algorandfoundation.github.io",
+  base,
   trailingSlash: "always",
   markdown: {
-    remarkPlugins: [remarkGithubAlerts],
+    remarkPlugins: [remarkGithubAlerts, [remarkRebaseLinks, { from: "/algokit-utils-py/", to: base }]],
   },
   integrations: [
     starlight({
@@ -26,7 +30,7 @@ export default defineConfig({
         {
           icon: "github",
           label: "GitHub",
-          href: "https://github.com/algorandfoundation/algokit-utils-py",
+          href: "https://github.com/algorandfoundation/algokit-py/tree/main/algokit-utils-py",
         },
         {
           icon: "discord",

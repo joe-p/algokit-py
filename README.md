@@ -12,8 +12,8 @@ This monorepo contains the core Python libraries and tools for [AlgoKit](https:/
 
 ## Requirements
 
-- **[uv](https://docs.astral.sh/uv/)**: each package is a uv project with its own `uv.lock`
-- **Python**: `>=3.10` for `algokit-utils-py` and `algokit-client-generator-py`, `>=3.12` for `algokit-subscriber-py`
+- **[uv](https://docs.astral.sh/uv/)**: the packages are members of one uv workspace with a single root `uv.lock`
+- **Python**: `>=3.10`
 - **[AlgoKit CLI](https://github.com/algorandfoundation/algokit-cli)**: required to run LocalNet for integration tests (`algokit localnet start`)
 - **Node.js and pnpm**: only to build the docs sites
 
@@ -24,22 +24,32 @@ Each package is developed from its own directory:
 ```sh
 cd algokit-utils-py
 
-uv sync                # create .venv with the package and its dev dependencies
+uv sync                # install the package and its dev dependencies into the root .venv
 uv run pytest -n auto  # run the tests (requires `algokit localnet start`)
 
-# Format, lint, type-check and audit
+# Format, lint and type-check
 uv run ruff format .
 uv run ruff check .
 uv run mypy
-uv run pip-audit
 ```
 
 `algokit-subscriber-py`'s tests aren't parallel-safe, so run them without `-n auto`.
 
-Pre-commit hooks for all three packages are configured in the root [`.pre-commit-config.yaml`](./.pre-commit-config.yaml). Install them from the repository root with:
+### Dependencies
+
+Dev dependency versions are defined once, in `constraint-dependencies` in the root [`pyproject.toml`](./pyproject.toml), much like a pnpm catalog. Each package lists its dev dependencies by name only. To add one, add its name to the package's `dev` dependency group and its version range to the root constraints, then run `uv lock`. Runtime dependencies keep their ranges in each package's `pyproject.toml`, since those are published. See [`MONOREPO.md`](./MONOREPO.md#dependency-versions).
+
+To audit every package's dependencies:
 
 ```sh
-uv run --project algokit-utils-py pre-commit install
+uv sync --all-packages -p 3.12
+uv run pip-audit
+```
+
+Pre-commit hooks for all three packages are configured in the root [`.pre-commit-config.yaml`](./.pre-commit-config.yaml). Install them with:
+
+```sh
+uvx pre-commit install
 ```
 
 ### Documentation

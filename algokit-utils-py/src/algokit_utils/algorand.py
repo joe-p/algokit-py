@@ -33,10 +33,10 @@ class AlgorandClient:
     def __init__(self, config: AlgoClientConfigs | AlgoSdkClients):
         self._client_manager: ClientManager = ClientManager(clients_or_configs=config, algorand_client=self)
         self._account_manager: AccountManager = AccountManager(self._client_manager)
-        self._asset_manager: AssetManager = AssetManager(self._client_manager.algod, lambda: self.new_group())
+        self._asset_manager: AssetManager = AssetManager(self._client_manager.algod, lambda: self.new_group())  # noqa: PLW0108
         self._app_manager: AppManager = AppManager(self._client_manager.algod)
         self._transaction_sender = AlgorandClientTransactionSender(
-            new_group=lambda: self.new_group(),
+            new_group=lambda: self.new_group(),  # noqa: PLW0108
             asset_manager=self._asset_manager,
             app_manager=self._app_manager,
             algod_client=self._client_manager.algod,
@@ -45,7 +45,7 @@ class AlgorandClient:
             self._app_manager, self._transaction_sender, self._client_manager.indexer_if_present
         )
         self._transaction_creator = AlgorandClientTransactionCreator(
-            new_group=lambda: self.new_group(),
+            new_group=lambda: self.new_group(),  # noqa: PLW0108
         )
 
         self._cached_suggested_params: SuggestedParams | None = None
@@ -187,7 +187,7 @@ class AlgorandClient:
 
         return TransactionComposer(
             algod=self.client.algod,
-            get_signer=lambda addr: self.account.get_signer(addr),
+            get_signer=lambda addr: self.account.get_signer(addr),  # noqa: PLW0108
             get_suggested_params=self.get_suggested_params,
             default_validity_window=self._default_validity_window,
             error_transformers=list(self._error_transformers),

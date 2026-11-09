@@ -12,7 +12,7 @@ It follows the same layout and release process as [algokit-ts](https://github.co
 
 ## Development
 
-Each package is its own [uv](https://docs.astral.sh/uv/) project, with its own `pyproject.toml`, `uv.lock` and `.venv`. Run commands from the package's directory:
+The packages are members of one [uv workspace](https://docs.astral.sh/uv/concepts/projects/workspaces/), defined in the root `pyproject.toml`. The workspace root isn't a package and is never published. There's a single root `uv.lock` and `.venv`. Run commands from a package's directory, where `uv run` and `uv sync` use that package and its dev dependencies:
 
 ```sh
 cd algokit-utils-py
@@ -20,9 +20,19 @@ uv sync
 uv run pytest -n auto   # requires `algokit localnet start`
 ```
 
-The packages aren't combined into a uv workspace. A workspace has a single `requires-python` for every member, and `algokit-subscriber-py` requires Python 3.12 or later while `algokit-utils-py` and `algokit-client-generator-py` support, and are tested on, 3.10 and 3.11. For the same reason the packages aren't linked to each other's local copies: `algokit-client-generator-py` and `algokit-subscriber-py` still install `algokit-utils` from PyPI, exactly as before the move.
+`uv sync --all-packages` from the root installs every package and all their dev dependencies.
 
-`.pre-commit-config.yaml` is at the root, since pre-commit only reads the config at the repository root. It runs each package's hooks, with that package's files and configuration, in its own uv environment. Ruff runs on the changed files with `uv run --project <package>`, which finds the package's `pyproject.toml` from the file paths. mypy and the docstring check run from the package directory over the files configured in its `pyproject.toml`, as CI does.
+`algokit-client-generator-py` and `algokit-subscriber-py` use the workspace's `algokit-utils` (`[tool.uv.sources] algokit-utils = { workspace = true }`), like `workspace:*` in algokit-ts. Sources only apply to development: the published packages keep their `algokit-utils` ranges and install it from PyPI.
+
+`.pre-commit-config.yaml` is at the root, since pre-commit only reads the config at the repository root. It runs each package's hooks with that package's files, configuration and dev dependencies. Ruff runs on the changed files with `uv run --project <package>`, which finds the package's `pyproject.toml` from the file paths. mypy and the docstring check run from the package directory over the files configured in its `pyproject.toml`, as CI does. pre-commit itself runs as a tool (`uvx pre-commit install`) rather than as a dev dependency.
+
+### Dependency versions
+
+Like the pnpm catalog in algokit-ts, dev dependency versions are defined once, in `constraint-dependencies` in the root `pyproject.toml`. Each package lists its dev dependencies in its `[dependency-groups]` by name only, e.g. `"ruff"`, and the root constraint sets the version. To upgrade a dev dependency for every package, change its constraint and run `uv lock`. Constraints also apply to transitive dependencies, so floors that keep pip-audit off vulnerable versions (e.g. `pip`, `requests`) are constraints rather than dev dependencies. A constraint alone doesn't install anything; a package still has to list the dependency.
+
+Runtime `dependencies` keep their version ranges in each package's `pyproject.toml`, because they're published as the package's requirements, like `peerDependencies` in algokit-ts. Every package shares the root `uv.lock`, so each dependency still resolves to a single version across the workspace.
+
+To add a dev dependency, add its name to the package's dev group and its version range to the root constraints, then run `uv lock`. `uv add --dev` would write the version into the package instead.
 
 ## CI
 
@@ -30,9 +40,11 @@ The packages aren't combined into a uv workspace. A workspace has a single `requ
 
 | Job | `algokit-utils-py` | `algokit-client-generator-py` | `algokit-subscriber-py` |
 | --- | --- | --- | --- |
-| `check`: pip-audit, ruff format and lint, mypy | 3.10, with the docstring check | 3.10, 3.11, 3.12 | 3.12, with the docstring check |
-| `test`: pytest against LocalNet, then `uv build` | 3.10, 3.11, 3.12 | 3.10, 3.11, 3.12 | 3.12, 3.13, 3.14, run serially |
+| `check`: ruff format and lint, mypy | 3.10, with the docstring check | 3.10, 3.11, 3.12 | 3.10, with the docstring check |
+| `test`: pytest against LocalNet, then `uv build` | 3.10, 3.11, 3.12 | 3.10, 3.11, 3.12 | 3.10 to 3.14, run serially |
 | `docs`: build the docs site | yes | (no site) | yes |
+
+A separate `audit` job checks that `uv.lock` is up to date (`uv lock --check`) and runs pip-audit once over the whole workspace (`uv sync --all-packages`). It uses Python 3.12: filelock's current advisories are only fixed in 4.x, which needs Python 3.11, so Python 3.10 environments keep filelock 3.x. filelock is a dev-only dependency of pip-audit.
 
 The pytest coverage comment is posted once per package, from the lowest Python version, with the package name as its title.
 
@@ -65,7 +77,7 @@ The release workflow (`.github/workflows/release.yml`) runs after CI passes. It 
 
 A manual run with *Stable release?* unchecked (the default) publishes betas exactly like a push to `main`. Use it to retry a push's release that failed and was rolled back: the rollback's revert commit is marked `[skip ci]`, so no push run will release those fragments otherwise.
 
-Each release commits the changelog, the `pyproject.toml` version and `uv.lock` to `main`. The version is written with `uv version`, which uses the normalized PEP 440 form (`4.2.4b5`) and updates the package's own entry in `uv.lock`. Each release also creates a git tag and a GitHub release named after the package, for example `algokit-utils-v4.2.4`, `algokit-client-generator-v2.2.1` and `algokit-subscriber-v1.0.2`, with the built wheel and sdist attached.
+Each release commits the changelog, the package's `pyproject.toml` version and the root `uv.lock` to `main`. The version is written with `uv version`, which uses the normalized PEP 440 form (`4.2.4b5`) and updates the package's entry in `uv.lock`. The package is built with `uv build --out-dir dist`, since a workspace member otherwise builds into the root `dist/`. Each release also creates a git tag and a GitHub release named after the package, for example `algokit-utils-v4.2.4`, `algokit-client-generator-v2.2.1` and `algokit-subscriber-v1.0.2`, with the built wheel and sdist attached.
 
 Releases start from the exact commit validated by CI. Each package job passes its release commit to the next job; jobs that have nothing to release pass their input commit through unchanged. If unrelated changes advance `main`, the run stops rather than including unvalidated code. A push arriving after the branch check is also protected by the release action's non-force push. Let the newer push's workflow validate and release the remaining changes. For a manual run, dispatch a new run from the latest `main` instead of rerunning the outdated run.
 
@@ -124,6 +136,9 @@ Outstanding work from the move to a monorepo and semfrag:
 - [ ] **Old docs sites**: the `algokit-utils-py` and `algokit-subscriber-py` repositories still serve their last docs build at `algorandfoundation.github.io/algokit-utils-py/` and `/algokit-subscriber-py/`, and it won't be updated. The package READMEs now link to the new site. Turn off Pages in those repositories once the new site is live, or leave the old sites up for existing links.
 - [ ] **DevPortal import**: the DevPortal still imports `algokit-utils-py` and `algokit-subscriber-py` docs from the old repositories' `docs-latest` releases. Its import configs need to point at this repository and each package's own release (see [DevPortal](#devportal)), as for algokit-ts.
 - [ ] **Subscriber license**: `algokit-subscriber-py` has no `LICENSE` file or `license` field in its `pyproject.toml`, unlike the other two packages.
+- [ ] **Ruff findings**: aligning ruff on 0.15 (utils was on 0.11, client-generator on 0.12) flagged existing code, which was suppressed with `ruff check --add-noqa` so the rules stay on for new code: 79 findings in utils (mostly `FBT001`, boolean positional arguments in public signatures, plus `PLC0415`, `PLW0108`, `PLW1641`, `RUF059`, `RUF043`, `PYI059`) and 4 in client-generator. Review them separately, especially `PLW1641` (`__eq__` without `__hash__`).
+- [ ] **`AppManager.get_box_reference`**: mypy 2 found that it can return a `bytearray` name, since algosdk keeps a `bytearray` passed to `BoxReference` as-is, while it's annotated to return `bytes`. It's `cast` for now rather than changing the return value.
+- [ ] **Dependabot**: it's configured for the `uv` ecosystem at the root. Check that its updates touch `constraint-dependencies` in the root `pyproject.toml`; if they don't, dev dependency upgrades will need doing by hand.
 - [ ] **Links in docstrings**: two docstrings in `algokit-utils-py/src` link to files in the old repository that no longer exist (`docs/source/v3-migration-guide.md`, `docs/source/capabilities/dispenser-client.md`). They were left alone because changing `src/` needs a release fragment.
 
 ## How the history was preserved
@@ -178,6 +193,24 @@ The changelogs were converted from python-semantic-release's format, because sem
 - Client-generator's `1.0.0` listed "Initial release" three times; it's listed once, under `Breaking Changes`.
 
 utils' `uv.lock` recorded its version as `4.2.4b2`, since python-semantic-release bumped `pyproject.toml` without relocking. It's now `4.2.4b4`, matching `pyproject.toml`. Releases keep them in sync with `uv version`.
+
+### uv workspace
+
+The packages previously had their own `uv.lock` files, and shared tools had drifted apart (for example ruff 0.11 to 0.15, and mypy 1.20 to 2.1). They're now one uv workspace (see [Development](#development)):
+
+- **Python 3.10 for subscriber**: a workspace has one `requires-python`, the intersection of its members', so subscriber's `>=3.12` would have stopped utils and client-generator testing on 3.10 and 3.11. Subscriber only needed 3.12 for two helpers in `utils.py` that used type parameter syntax, now `TypeVar`s, and for its generated test client, whose generics ruff had rewritten to that syntax when it targeted 3.12. Subscriber now supports Python 3.10 and 3.11 (with a changelog fragment), and CI tests it on 3.10 to 3.14.
+- **Lockfiles**: the per-package `uv.lock` files were replaced by the root `uv.lock`. It was resolved fresh, so dependencies moved to the newest versions their ranges allow (for example `py-algorand-sdk` 2.11.1 to 2.12.0 and `pytest` 9.0.3 to 9.2.0).
+- **Shared dev dependencies** were aligned on the newest version any package used, and moved into the root constraints: ruff 0.15, mypy 2.1, pytest-cov 7, poethepoet 0.46 and pip-audit 2.10 (utils was on ruff 0.11, mypy 1.20, pytest-cov 6 and poethepoet 0.34; client-generator on ruff 0.12). Single-package dev dependencies kept their existing ranges.
+- **`workspace = true` links**: client-generator and subscriber previously installed `algokit-utils` 4.2.3 from PyPI for development. They now use the workspace's `algokit-utils`.
+
+Things that broke and how they were fixed:
+
+- **ruff 0.15** (utils and client-generator) flagged existing code. The findings were suppressed with `# noqa` comments (`ruff check --add-noqa`) rather than fixed, since most would change public signatures (see [TODO](#todo)). Two signatures in utils' `_legacy_v2` were reformatted so the comments sit on the flagged lines.
+- **mypy 2** (utils): `AppManager.get_box_reference` returns algosdk's `BoxReference.name`, which mypy now infers as `bytes | bytearray`. It's `cast` to the annotated `bytes`, without changing behavior.
+- **pre-commit and virtualenv**: pip-audit flagged virtualenv, which pre-commit depends on. The fixed version needs `packaging>=26.3`, but client-generator's `puyapy` dev dependency requires `packaging<25`, so the workspace can't resolve both. pre-commit only runs hooks that call `uv run` themselves, so it was removed from the dev dependencies and runs with `uvx pre-commit` instead.
+- **setuptools and filelock**: pip-audit flagged setuptools 83, which the `<84` pins kept, and filelock 3.x. setuptools moved to 84. filelock's fixes need Python 3.11, so the constraint is split by Python version, and CI's audit runs on 3.12 (see [CI](#ci)). These advisories also affect the source repositories' locks; the untouched client-generator lock fails pip-audit on virtualenv the same way.
+- **Builds**: `uv build` in a workspace member writes to the root `dist/`, so CI and releases build with `--out-dir dist`. The root `dist/` is also in `.gitignore`.
+- **Dependabot** updates the one workspace at `/` with the `uv` ecosystem, rather than each package with `pip`.
 
 ### Workflows
 

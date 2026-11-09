@@ -7,10 +7,36 @@ on:
 # write` for the coverage comment, which `release.yml` doesn't grant, so it
 # can't be requested here.
 
-# Each package is its own uv project with its own `uv.lock` and supported
-# Python versions, so every job runs in the package's directory. The matrices
-# keep each package's previous CI coverage.
+# The packages are members of one uv workspace with a single root `uv.lock`.
+# The check and test jobs run in a package's directory, where `uv sync` installs
+# only that package and its dev dependencies.
 jobs:
+  audit:
+    name: Audit dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Set up Python environment
+        uses: algorandfoundation/algokit-shared-config/.github/actions/setup-algokit-python@main
+        with:
+          python-version: "3.12"
+          install-algokit: "false"
+
+      - name: Check uv.lock is up to date
+        run: uv lock --check
+
+      # Audits every package and dev dependency in the workspace at once.
+      # Python 3.12 rather than 3.10, because filelock's fixes need 3.11+ and
+      # Python 3.10 keeps the vulnerable 3.x (see the root `pyproject.toml`).
+      # If a vulnerability is found in a dev dependency without an available
+      # fix, it can be temporarily ignored with `--ignore-vuln <id>`.
+      - name: Audit with pip-audit
+        run: |
+          uv sync --all-packages
+          uv run --no-sync pip-audit
+
   check:
     name: Check ${{ matrix.package }} (Python ${{ matrix.python }})
     runs-on: ubuntu-latest
@@ -28,7 +54,7 @@ jobs:
           - package: algokit-client-generator-py
             python: "3.12"
           - package: algokit-subscriber-py
-            python: "3.12"
+            python: "3.10"
             docstrings: true
     defaults:
       run:
@@ -43,11 +69,6 @@ jobs:
           python-version: ${{ matrix.python }}
           install-algokit: "false"
           working-directory: ${{ matrix.package }}
-
-      # If a vulnerability is found in a dev dependency without an available
-      # fix, it can be temporarily ignored with `--ignore-vuln <id>`.
-      - name: Audit with pip-audit
-        run: uv run --no-sync pip-audit
 
       - name: Check formatting with Ruff
         run: uv run ruff format --check .
@@ -93,8 +114,12 @@ jobs:
           # live-LocalNet integration tests with round-based assertions and are
           # not parallel-safe.
           - package: algokit-subscriber-py
-            python: "3.12"
+            python: "3.10"
             coverage-comment: true
+          - package: algokit-subscriber-py
+            python: "3.11"
+          - package: algokit-subscriber-py
+            python: "3.12"
           - package: algokit-subscriber-py
             python: "3.13"
           - package: algokit-subscriber-py
@@ -141,8 +166,9 @@ jobs:
           path: ${{ matrix.package }}/pytest-junit.xml
           retention-days: 30
 
+      # Without --out-dir, a workspace member builds into the root dist/.
       - name: Build package distribution
-        run: uv build
+        run: uv build --out-dir dist
 
   docs:
     name: Build docs ${{ matrix.package }}

@@ -638,7 +638,7 @@ def _dict_keys_to_snake_case(value: Any, path: tuple[str, ...] = ()) -> Any:  # 
       - or one of the top-level keys ("networks", "scratchVariables", "templateVariables", "structs")
     (Note that once converted the parent key names become snake_case.)
     """
-    import re
+    import re  # noqa: PLC0415
 
     def camel_to_snake(s: str) -> str:
         # Use a regular expression to insert an underscore before capital letters (except at start).

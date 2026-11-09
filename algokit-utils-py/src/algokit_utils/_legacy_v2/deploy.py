@@ -293,7 +293,9 @@ def _is_valid_token_character(char: str) -> bool:
 
 
 def add_deploy_template_variables(
-    template_values: TemplateValueDict, allow_update: bool | None, allow_delete: bool | None
+    template_values: TemplateValueDict,
+    allow_update: bool | None,  # noqa: FBT001
+    allow_delete: bool | None,  # noqa: FBT001
 ) -> None:
     if allow_update is not None:
         template_values[_UPDATABLE] = int(allow_update)

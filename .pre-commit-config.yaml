@@ -1,6 +1,7 @@
 # pre-commit only reads this file at the repository root, so it runs each
-# package's hooks with that package's own uv environment and configuration.
-# Install the git hook with: uv run --project algokit-utils-py pre-commit install
+# package's hooks with that package's dev dependencies and configuration.
+# pre-commit itself isn't a dev dependency; install the git hook with:
+#   uvx pre-commit install
 repos:
   - repo: local
     hooks:

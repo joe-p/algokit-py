@@ -1,13 +1,10 @@
 # https://docs.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
 
-# Each package is its own uv project with its own `uv.lock`, so each directory is updated separately.
+# The packages are members of one uv workspace with a single root `uv.lock`.
 version: 2
 updates:
-  - package-ecosystem: "pip"
-    directories:
-      - "/algokit-utils-py"
-      - "/algokit-client-generator-py"
-      - "/algokit-subscriber-py"
+  - package-ecosystem: "uv"
+    directory: "/"
     schedule:
       interval: "weekly"
     commit-message:

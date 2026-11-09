@@ -43,7 +43,7 @@ def test_abi_create(client_fixture: ApplicationClient) -> None:
 
 
 @pytest.mark.parametrize("method", ["create_args", "create_args(string)void", True])
-def test_abi_create_args(method: str | bool, client_fixture: ApplicationClient) -> None:
+def test_abi_create_args(method: str | bool, client_fixture: ApplicationClient) -> None:  # noqa: FBT001
     client_fixture.create(method, greeting="ahoy")
 
     assert client_fixture.call("hello", name="test").return_value == "ahoy, test"

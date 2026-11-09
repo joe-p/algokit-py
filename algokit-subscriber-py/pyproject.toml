@@ -12,19 +12,18 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "algokit-utils>=4.1,<5",
-    "mypy>=1.17.1",
-    "ruff>=0.12.9",
-    "pytest>=8.4.1",
-    "pre-commit>=4.2.0",
-    "pytest-cov>=6.2.1",
-    "poethepoet>=0.36.0",
-    "pytest-sugar>=1.0.0",
-    "pip-audit>=2.9.0",
-    "sphinx>=8.0.0,<9",
-    "sphinx-autoapi>=3.4.0,<4",
-    "sphinx-markdown-builder>=0.6.8,<0.7",
-    "pydoclint>=0.6.0,<0.7",
+    "algokit-utils",
+    "mypy",
+    "ruff",
+    "pytest",
+    "pytest-cov",
+    "poethepoet",
+    "pytest-sugar",
+    "pip-audit",
+    "sphinx",
+    "sphinx-autoapi",
+    "sphinx-markdown-builder",
+    "pydoclint",
 ]
 
 [build-system]
@@ -137,3 +136,6 @@ docs-dev         = { shell = "python docs/api_build.py && pnpm --dir docs dev" }
 docs-build       = { shell = "python docs/api_build.py && pnpm --dir docs build" }
 docs-preview     = { shell = "pnpm --dir docs preview" }
 docstrings-check = "pydoclint src --style sphinx --arg-type-hints-in-docstring false --check-return-types false"
+
+[tool.uv.sources]
+algokit-utils = { workspace = true }

@@ -118,7 +118,7 @@ def {operation}(self) -> "{class_name}":
         ):
             continue
 
-        method_params, has_args = _generate_common_method_params(
+        method_params, has_args = _generate_common_method_params(  # noqa: RUF059
             context, method, PropertyType.PARAMS, operation=operation
         )
         method_params = method_params.rsplit(" ->", 1)[0]

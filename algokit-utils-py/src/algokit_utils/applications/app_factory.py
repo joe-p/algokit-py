@@ -917,7 +917,7 @@ class AppFactory:
         app_name: str,
         default_sender: str | None = None,
         default_signer: TransactionSigner | None = None,
-        ignore_cache: bool | None = None,
+        ignore_cache: bool | None = None,  # noqa: FBT001
         app_lookup_cache: ApplicationLookup | None = None,
         approval_source_map: SourceMap | None = None,
         clear_source_map: SourceMap | None = None,

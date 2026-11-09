@@ -64,8 +64,8 @@ runs:
         fragments-dir: ${{ inputs.package }}/changelog.d
         prerelease: ${{ inputs.prerelease }}
 
-    # Writes the PEP 440 form of the version (e.g. `4.2.4b5`) to pyproject.toml
-    # and updates the package's own entry in uv.lock.
+    # Writes the PEP 440 form of the version (e.g. `4.2.4b5`) to the package's
+    # pyproject.toml and updates its entry in the workspace's root uv.lock.
     - name: Bump pyproject.toml version
       if: steps.semfrag.outputs.released == 'true'
       shell: bash
@@ -75,12 +75,13 @@ runs:
       run: uv version --no-sync "${VERSION}"
 
     # Built before anything is pushed, so a failing build doesn't need a
-    # rollback.
+    # rollback. Without --out-dir, a workspace member builds into the root
+    # dist/.
     - name: Build
       if: steps.semfrag.outputs.released == 'true'
       shell: bash
       working-directory: ${{ inputs.package }}
-      run: uv build
+      run: uv build --out-dir dist
 
     - name: Commit, tag and create GitHub release
       id: publish

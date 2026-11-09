@@ -48,7 +48,7 @@ def test_arc56_demo(
     arc56_test_factory: Arc56TestFactory,
     default_deployer: algokit_utils.SigningAccount,
 ) -> None:
-    client, result = arc56_test_factory.send.create.create_application(
+    client, result = arc56_test_factory.send.create.create_application(  # noqa: RUF059
         compilation_params={"deploy_time_params": {"someNumber": 1337}}
     )
 
@@ -115,7 +115,7 @@ def test_arc56_demo(
     assert decoded.sum == 3
     assert decoded.difference == 5
 
-    with pytest.raises(Exception, match="subtract.a must be greater than subtract.b"):
+    with pytest.raises(Exception, match="subtract.a must be greater than subtract.b"):  # noqa: RUF043
         client.send.foo(args=FooArgs(inputs=Inputs(add=InputsAdd(a=1, b=100), subtract=InputsSubtract(a=1, b=2))))
 
     assert client.state.global_state.global_key == 1337

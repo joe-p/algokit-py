@@ -670,8 +670,8 @@ def _encode_lease(lease: str | bytes | None) -> bytes | None:
 def _get_group_execution_info(  # noqa: C901
     atc: AtomicTransactionComposer,
     algod: AlgodClient,
-    populate_app_call_resources: bool | None = None,
-    cover_app_call_inner_transaction_fees: bool | None = None,
+    populate_app_call_resources: bool | None = None,  # noqa: FBT001
+    cover_app_call_inner_transaction_fees: bool | None = None,  # noqa: FBT001
     additional_atc_context: AdditionalAtcContext | None = None,
 ) -> ExecutionInfo:
     # Create simulation request
@@ -848,8 +848,8 @@ def populate_app_call_resources(atc: AtomicTransactionComposer, algod: AlgodClie
 def prepare_group_for_sending(  # noqa: C901, PLR0912, PLR0915
     atc: AtomicTransactionComposer,
     algod: AlgodClient,
-    populate_app_call_resources: bool | None = None,
-    cover_app_call_inner_transaction_fees: bool | None = None,
+    populate_app_call_resources: bool | None = None,  # noqa: FBT001
+    cover_app_call_inner_transaction_fees: bool | None = None,  # noqa: FBT001
     additional_atc_context: AdditionalAtcContext | None = None,
 ) -> AtomicTransactionComposer:
     """Take an existing Atomic Transaction Composer and return a new one with changes applied to the transactions
@@ -1227,7 +1227,7 @@ def send_atomic_transaction_composer(  # noqa: C901, PLR0912
     :raises Exception: If there is an error sending the transactions
     :raises error: If there is an error from the Algorand node
     """
-    from algokit_utils._debugging import simulate_and_persist_response, simulate_response
+    from algokit_utils._debugging import simulate_and_persist_response, simulate_response  # noqa: PLC0415
 
     try:
         # Build transactions
@@ -1387,7 +1387,7 @@ class TransactionComposer:
         self._txns: list[TransactionWithSigner | TxnParams | AtomicTransactionComposer] = []
         self._atc: AtomicTransactionComposer = AtomicTransactionComposer()
         self._algod: AlgodClient = algod
-        self._default_get_send_params = lambda: self._algod.suggested_params()
+        self._default_get_send_params = lambda: self._algod.suggested_params()  # noqa: PLW0108
         self._get_suggested_params = get_suggested_params or self._default_get_send_params
         self._get_signer: Callable[[str], TransactionSigner] = get_signer
         self._default_validity_window: int = default_validity_window or 10
@@ -1944,13 +1944,13 @@ class TransactionComposer:
 
     def simulate(
         self,
-        allow_more_logs: bool | None = None,
-        allow_empty_signatures: bool | None = None,
-        allow_unnamed_resources: bool | None = None,
+        allow_more_logs: bool | None = None,  # noqa: FBT001
+        allow_empty_signatures: bool | None = None,  # noqa: FBT001
+        allow_unnamed_resources: bool | None = None,  # noqa: FBT001
         extra_opcode_budget: int | None = None,
         exec_trace_config: SimulateTraceConfig | None = None,
         simulation_round: int | None = None,
-        skip_signatures: bool | None = None,
+        skip_signatures: bool | None = None,  # noqa: FBT001
     ) -> SendAtomicTransactionComposerResults:
         """Simulate transaction group execution with configurable validation rules.
 
@@ -1966,7 +1966,7 @@ class TransactionComposer:
         :example:
             >>> result = composer.simulate(extra_opcode_budget=1000, skip_signatures=True, ...)
         """
-        from algokit_utils._debugging import simulate_and_persist_response, simulate_response
+        from algokit_utils._debugging import simulate_and_persist_response, simulate_response  # noqa: PLC0415
 
         atc = AtomicTransactionComposer() if skip_signatures else self._atc
 
@@ -2105,7 +2105,7 @@ class TransactionComposer:
             else:
                 # If the validity window isn't set in this transaction or by default and we are pointing at
                 #  LocalNet set a bigger window to avoid dead transactions
-                from algokit_utils.clients import ClientManager
+                from algokit_utils.clients import ClientManager  # noqa: PLC0415
 
                 is_localnet = ClientManager.genesis_id_is_localnet(txn_params["sp"].gen)
                 window = params.validity_window or (
@@ -2305,7 +2305,7 @@ class TransactionComposer:
             method_atc.add_method_call(**x)
             return method_atc.build_group()[-1].txn
 
-        result = self._common_txn_build_step(lambda x: _add_method_call_and_return_txn(x), params, txn_params)
+        result = self._common_txn_build_step(lambda x: _add_method_call_and_return_txn(x), params, txn_params)  # noqa: PLW0108
 
         build_atc_resp = self._build_atc(method_atc)
         response = []
@@ -2506,7 +2506,7 @@ class TransactionComposer:
             },
         )
 
-    def _is_abi_value(self, x: bool | float | str | bytes | list | TxnParams) -> bool:
+    def _is_abi_value(self, x: bool | float | str | bytes | list | TxnParams) -> bool:  # noqa: FBT001
         if isinstance(x, list | tuple):
             return len(x) == 0 or all(self._is_abi_value(item) for item in x)
 

@@ -18,18 +18,17 @@ algokitgen-py = "algokit_client_generator.cli:main"
 
 [dependency-groups]
 dev = [
-    "ruff>=0.8.6,<0.13.0",
+    "ruff",
     "mypy",
     "pytest",
     "pytest-cov",
-    "pip-audit>=2.5.5,<3",
-    "pre-commit>=3.3.2,<5.0.0",
-    "poethepoet>=0.20,<0.37",
-    "pytest-xdist>=3.5.0,<4",
-    "puyapy>=5.8.0,<6; python_version >= '3.12'",
-    "algorand-python>=3.4.0,<4; python_version >= '3.12'",
-    "setuptools>=83.0,<84.0",
-    "pytest-sugar>=1.0.0,<2",
+    "pip-audit",
+    "poethepoet",
+    "pytest-xdist",
+    "puyapy; python_version >= '3.12'",
+    "algorand-python; python_version >= '3.12'",
+    "setuptools",
+    "pytest-sugar",
 ]
 
 [build-system]
@@ -139,3 +138,6 @@ disallow_any_generics = false
 implicit_reexport = false
 show_error_codes = true
 disable_error_code = ['return']
+
+[tool.uv.sources]
+algokit-utils = { workspace = true }

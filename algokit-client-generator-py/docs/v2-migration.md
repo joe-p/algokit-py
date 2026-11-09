@@ -177,4 +177,4 @@ box_mapping_content = client.state.boxes.box_map.get_value(Inputs(add=InputsAdd(
 -   Access `response.returns` for detailed simulation results
 -   Combine factory patterns with `algokit-utils-py` v3 features for best results
 
-Need help? Submit an issue on [GitHub](https://github.com/algorandfoundation/algokit-client-generator-py/issues), for reference on the application specification refer to [ARC-56 specification](https://arc.algorand.foundation/ARCs/arc-0056).
+Need help? Submit an issue on [GitHub](https://github.com/algorandfoundation/algokit-py/issues), for reference on the application specification refer to [ARC-56 specification](https://arc.algorand.foundation/ARCs/arc-0056).

@@ -141,7 +141,7 @@ typed_factory = MyContractFactory(algorand)
 
 ## Client usage
 
-See the [official usage docs](https://github.com/algorandfoundation/algokit-client-generator-py/blob/main/docs/usage.md) for full details about typed clients.
+See the [official usage docs](https://github.com/algorandfoundation/algokit-py/blob/main/algokit-client-generator-py/docs/usage.md) for full details about typed clients.
 
 Below is a realistic example that deploys a contract, funds it if newly created, and calls a `"hello"` method:
 

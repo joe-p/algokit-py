@@ -7,7 +7,7 @@ Client management is one of the core capabilities provided by AlgoKit Utils. It 
 
 Any AlgoKit Utils function that needs one of these clients will take the underlying algosdk classes (`algosdk.v2client.algod.AlgodClient`, `algosdk.v2client.indexer.IndexerClient`, `algosdk.kmd.KMDClient`) so inline with the [Modularity](/algokit-utils-py/#core-principles) principle you can use existing logic to get instances of these clients without needing to use the Client management capability if you prefer.
 
-To see some usage examples check out the [automated tests](https://github.com/algorandfoundation/algokit-utils-py/blob/main/tests/test_network_clients.py).
+To see some usage examples check out the [automated tests](https://github.com/algorandfoundation/algokit-py/blob/main/algokit-utils-py/legacy_v2_tests/test_network_clients.py).
 
 ## `ClientManager`
 

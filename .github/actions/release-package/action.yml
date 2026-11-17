@@ -74,6 +74,16 @@ runs:
         VERSION: ${{ steps.semfrag.outputs.version }}
       run: uv version --no-sync "${VERSION}"
 
+    # uv ignores version ranges on workspace sources, so check that the new
+    # version is still allowed by the other members that depend on this one,
+    # e.g. a 5.x utils by client-generator's `algokit-utils<5`. Fails before
+    # anything is pushed, so it doesn't need a rollback; widen the dependents'
+    # ranges and release again.
+    - name: Check workspace dependency ranges
+      if: steps.semfrag.outputs.released == 'true'
+      shell: bash
+      run: uv run --no-project --python 3.12 --with packaging python .github/scripts/workspace_deps.py check
+
     # Built before anything is pushed, so a failing build doesn't need a
     # rollback. Without --out-dir, a workspace member builds into the root
     # dist/.

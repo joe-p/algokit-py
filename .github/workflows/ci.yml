@@ -5,7 +5,9 @@ on:
 
 # Permissions are inherited from the caller: `pr.yml` adds `pull-requests:
 # write` for the coverage comment, which `release.yml` doesn't grant, so it
-# can't be requested here.
+# can't be requested here. A job can still drop permissions, so the jobs that
+# don't post the comment are limited to reading the repository, rather than
+# getting the release's `contents: write` and `id-token: write`.
 
 # The packages are members of one uv workspace with a single root `uv.lock`.
 # The check and test jobs run in a package's directory, where `uv sync` installs
@@ -14,6 +16,8 @@ jobs:
   audit:
     name: Audit dependencies
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -26,6 +30,13 @@ jobs:
 
       - name: Check uv.lock is up to date
         run: uv lock --check
+
+      # uv ignores a version range on a workspace source, so the workspace could
+      # test a package against a version of another member that its published
+      # requirements exclude, e.g. client-generator's `algokit-utils<5` against
+      # a 5.x utils. `release-package` runs this again after bumping a version.
+      - name: Check workspace dependency ranges
+        run: uv run --no-project --python 3.12 --with packaging python .github/scripts/workspace_deps.py check
 
       # Audits every package and dev dependency in the workspace at once.
       # Python 3.12 rather than 3.10, because filelock's fixes need 3.11+ and
@@ -40,6 +51,8 @@ jobs:
   check:
     name: Check ${{ matrix.package }} (Python ${{ matrix.python }})
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -84,7 +97,7 @@ jobs:
         run: uv run poe docstrings-check
 
   test:
-    name: Test ${{ matrix.package }} (Python ${{ matrix.python }})
+    name: Test ${{ matrix.package }} (Python ${{ matrix.python }})${{ matrix.utils-floor && ', lowest algokit-utils' || '' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -110,6 +123,13 @@ jobs:
           - package: algokit-client-generator-py
             python: "3.12"
             pytest-args: -n auto
+          # The workspace tests client-generator against the workspace's
+          # algokit-utils, but the published package allows any version in its
+          # range. This also tests it against the lowest one, from PyPI.
+          - package: algokit-client-generator-py
+            python: "3.10"
+            pytest-args: -n auto
+            utils-floor: true
           # Subscriber's tests run serially (no pytest-xdist): they are
           # live-LocalNet integration tests with round-based assertions and are
           # not parallel-safe.
@@ -138,9 +158,20 @@ jobs:
           install-algokit: "false"
           working-directory: ${{ matrix.package }}
 
+      # Replaces the workspace's editable algokit-utils with the lowest version
+      # the package's published requirements allow. The tests then run with
+      # --no-sync so uv doesn't put the workspace's back.
+      - name: Install lowest allowed algokit-utils
+        if: matrix.utils-floor
+        run: |
+          floor="$(uv run --no-project --python 3.12 --with packaging python ../.github/scripts/workspace_deps.py floor "${{ matrix.package }}" algokit-utils)"
+          echo "Testing against algokit-utils==${floor}"
+          uv pip install "algokit-utils==${floor}"
+
       - name: pytest + coverage
         env:
           PYTEST_ARGS: ${{ matrix.pytest-args }}
+          UV_NO_SYNC: ${{ matrix.utils-floor && 'true' || 'false' }}
         run: |
           set -o pipefail
           uvx algokit localnet start
@@ -162,17 +193,20 @@ jobs:
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: test-results-${{ matrix.package }}-python-${{ matrix.python }}
+          name: test-results-${{ matrix.package }}-python-${{ matrix.python }}${{ matrix.utils-floor && '-utils-floor' || '' }}
           path: ${{ matrix.package }}/pytest-junit.xml
           retention-days: 30
 
       # Without --out-dir, a workspace member builds into the root dist/.
       - name: Build package distribution
+        if: ${{ !matrix.utils-floor }}
         run: uv build --out-dir dist
 
   docs:
     name: Build docs ${{ matrix.package }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:

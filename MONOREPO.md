@@ -24,6 +24,8 @@ uv run pytest -n auto   # requires `algokit localnet start`
 
 `algokit-client-generator-py` and `algokit-subscriber-py` use the workspace's `algokit-utils` (`[tool.uv.sources] algokit-utils = { workspace = true }`), like `workspace:*` in algokit-ts. Sources only apply to development: the published packages keep their `algokit-utils` ranges and install it from PyPI.
 
+Unlike pnpm, which replaces `workspace:*` with the released version when publishing, uv ignores the range on a workspace source, and nothing rewrites it on release. So the workspace could test client-generator against a utils version its published range excludes (e.g. a 5.x utils with `algokit-utils<5`), or against utils changes that older versions in the range don't have. Two checks cover this, both described under [CI](#ci): `.github/scripts/workspace_deps.py check` fails if a package's published range excludes the workspace version of another member, and client-generator is also tested against the lowest `algokit-utils` its range allows. When utils has a major release, widen the dependents' ranges; when a dependent starts using newer utils, raise its floor.
+
 `.pre-commit-config.yaml` is at the root, since pre-commit only reads the config at the repository root. It runs each package's hooks with that package's files, configuration and dev dependencies. Ruff runs on the changed files with `uv run --project <package>`, which finds the package's `pyproject.toml` from the file paths. mypy and the docstring check run from the package directory over the files configured in its `pyproject.toml`, as CI does. pre-commit itself runs as a tool (`uvx pre-commit install`) rather than as a dev dependency.
 
 ### Dependency versions
@@ -44,11 +46,13 @@ To add a dev dependency, add its name to the package's dev group and its version
 | `test`: pytest against LocalNet, then `uv build` | 3.10, 3.11, 3.12 | 3.10, 3.11, 3.12 | 3.10 to 3.14, run serially |
 | `docs`: build the docs site | yes | (no site) | yes |
 
-A separate `audit` job checks that `uv.lock` is up to date (`uv lock --check`) and runs pip-audit once over the whole workspace (`uv sync --all-packages`). It uses Python 3.12: filelock's current advisories are only fixed in 4.x, which needs Python 3.11, so Python 3.10 environments keep filelock 3.x. filelock is a dev-only dependency of pip-audit.
+A separate `audit` job checks that `uv.lock` is up to date (`uv lock --check`) and runs pip-audit once over the whole workspace (`uv sync --all-packages`). It uses Python 3.12: filelock's current advisories are only fixed in 4.x, which needs Python 3.11, so Python 3.10 environments keep filelock 3.x. filelock is a dev-only dependency of pip-audit. The `audit` job also runs `.github/scripts/workspace_deps.py check` (see [Development](#development)), which `release-package` runs again after bumping a version, so a release whose version a dependent's range excludes fails before anything is pushed.
+
+The `test` job runs client-generator a second time on Python 3.10 with the lowest `algokit-utils` its published range allows, installed from PyPI over the workspace's (`uv pip install`, then `uv run` with `UV_NO_SYNC`).
 
 The pytest coverage comment is posted once per package, from the lowest Python version, with the package name as its title.
 
-`ci.yml` inherits its permissions from the caller rather than setting them. The coverage comment needs `pull-requests: write`, which `pr.yml` grants, and a reusable workflow can't request a permission its caller doesn't have, so declaring it in `ci.yml` would break `release.yml`.
+`ci.yml` inherits its permissions from the caller rather than setting them. The coverage comment needs `pull-requests: write`, which `pr.yml` grants, and a reusable workflow can't request a permission its caller doesn't have, so declaring it in `ci.yml` would break `release.yml`. A job can still drop permissions, so `audit`, `check` and `docs` set `contents: read`, rather than getting `release.yml`'s `contents: write` and `id-token: write`. `test` can't, because the coverage comment needs `pull-requests: write` from `pr.yml`.
 
 ## Releases
 

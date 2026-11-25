@@ -77,7 +77,7 @@ class SigningAccount:
 
         :return: A new Account instance
         """
-        private_key, address = algosdk.account.generate_account()
+        private_key, address = algosdk.account.generate_account()  # noqa: RUF059
         return SigningAccount(private_key=private_key)
 
 

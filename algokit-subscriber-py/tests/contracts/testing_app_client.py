@@ -327,16 +327,22 @@ _APP_SPEC_JSON = r"""{
 APP_SPEC = algokit_utils.ApplicationSpecification.from_json(_APP_SPEC_JSON)
 
 
-class _ArgsBase[TReturn](ABC):
+_TReturn = typing.TypeVar("_TReturn")
+
+
+class _ArgsBase(ABC, typing.Generic[_TReturn]):
     @staticmethod
     @abstractmethod
     def method() -> str:
         ...
 
 
+_TArgs = typing.TypeVar("_TArgs", bound=_ArgsBase[typing.Any])
+
+
 @dataclasses.dataclass(kw_only=True)
-class _TArgsHolder[TArgs]:
-    args: TArgs
+class _TArgsHolder(typing.Generic[_TArgs]):
+    args: _TArgs
 
 
 def _filter_none(value: dict | typing.Any) -> dict | typing.Any:

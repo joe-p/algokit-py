@@ -51,7 +51,7 @@ TealTemplateParams: TypeAlias = Mapping[str, str | int | bytes] | dict[str, str 
 BoxIdentifier: TypeAlias = str | bytes | AccountTransactionSigner
 
 
-class BoxReference(AlgosdkBoxReference):
+class BoxReference(AlgosdkBoxReference):  # noqa: PLW1641
     def __init__(self, app_id: int, name: bytes | str):
         super().__init__(app_index=app_id, name=self._b64_decode(name))
 

@@ -34,7 +34,7 @@ Given that `algokit-utils-py` v3.x is backwards compatible with `algokit-client-
     - 1.1 (If used) Update imports from `algokit_utils.beta` to `algokit_utils`
     - 1.2 Follow hints in deprecation warnings to update your codebase to rely on latest v3 interfaces
 2.  Upgrade to `algokit-client-generator-py` v2.x and regenerate typed clients
-    - 2.1 Follow `algokit-client-generator-py` [v2.x migration guide](https://github.com/algorandfoundation/algokit-client-generator-py/blob/main/docs/v2-migration-guide.md)
+    - 2.1 Follow `algokit-client-generator-py` [v2.x migration guide](https://github.com/algorandfoundation/algokit-py/blob/main/algokit-client-generator-py/docs/v2-migration.md)
 
 The remaining set of guidelines are outlining migrations for specific abstractions that had direct equivalents in `algokit-utils-py` v2.x.
 
@@ -184,7 +184,7 @@ Version 2 of the Python typed app client generator introduces breaking changes t
 
 It's worth noting that because we have maintained backwards compatibility with the pre v2 `algokit-utils-py` stateless functions, older typed clients generated using version 1 of the Python typed client generator will work against v3 of utils, however you won't have access to the new features or ARC-56 support.
 
-If you want to convert from an older typed client to a new one you will need to make certain changes. Refer to [client generator v2 migration guide](https://github.com/algorandfoundation/algokit-client-generator-py/blob/main/docs/v2-migration.md).
+If you want to convert from an older typed client to a new one you will need to make certain changes. Refer to [client generator v2 migration guide](https://github.com/algorandfoundation/algokit-py/blob/main/algokit-client-generator-py/docs/v2-migration.md).
 
 ### Step 7 - Update `AppClient` State Management
 
@@ -281,8 +281,8 @@ result = algorand.send.asset_opt_in(
 
 ### A v2 interface/method/class does not display a deprecation warning correctly or at all
 
-Submit an issue to [algokit-utils-py](https://github.com/algorandfoundation/algokit-utils-py/issues) with a description of the problem and the code that is causing it.
+Submit an issue to [algokit-utils-py](https://github.com/algorandfoundation/algokit-py/issues) with a description of the problem and the code that is causing it.
 
 ### Useful scenario of converting v2 to v3 not covered in generic migration guide
 
-If you have a scenario that you think is useful and not covered in the generic migration guide, please submit an issue to [algokit-utils-py](https://github.com/algorandfoundation/algokit-utils-py/issues) with a scenario.
+If you have a scenario that you think is useful and not covered in the generic migration guide, please submit an issue to [algokit-utils-py](https://github.com/algorandfoundation/algokit-py/issues) with a scenario.

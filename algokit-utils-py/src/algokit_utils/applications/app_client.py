@@ -172,7 +172,7 @@ def _error_refers_to_app_id(error_message: str, app_id: int) -> bool:
     Matches ``app={app_id}`` only when the id is not a prefix of a longer numeric id,
     so a transformer for app ``1142`` does not claim errors for app ``11423``.
     """
-    import re
+    import re  # noqa: PLC0415
 
     return re.search(rf"app={app_id}(?!\d)", error_message) is not None
 
@@ -303,7 +303,7 @@ class AppClientBareCallCreateParams(CommonAppCallCreateParams):
 
 
 @dataclass(kw_only=True, frozen=True)
-class BaseAppClientMethodCallParams(Generic[ArgsT, MethodT], CommonAppCallParams):
+class BaseAppClientMethodCallParams(Generic[ArgsT, MethodT], CommonAppCallParams):  # noqa: PYI059
     """Base parameters for application method calls."""
 
     method: MethodT
@@ -1522,7 +1522,7 @@ class AppClient:
         default_signer: TransactionSigner | None = None,
         approval_source_map: SourceMap | None = None,
         clear_source_map: SourceMap | None = None,
-        ignore_cache: bool | None = None,
+        ignore_cache: bool | None = None,  # noqa: FBT001
         app_lookup_cache: ApplicationLookup | None = None,
     ) -> AppClient:
         """Create an AppClient instance from creator address and application name.
@@ -1716,7 +1716,7 @@ class AppClient:
                     traces=None,
                 )
         if error_message:
-            import re
+            import re  # noqa: PLC0415
 
             message = e.logic_error_str if isinstance(e, LogicError) else str(e)
             app_id = re.search(r"(?<=app=)\d+", message)
@@ -2010,7 +2010,7 @@ class AppClient:
         """
         try:
             # Check if this is a logic error that we can parse
-            from algokit_utils.errors.logic_error import parse_logic_error
+            from algokit_utils.errors.logic_error import parse_logic_error  # noqa: PLC0415
 
             error_details = parse_logic_error(str(error))
             if not error_details:

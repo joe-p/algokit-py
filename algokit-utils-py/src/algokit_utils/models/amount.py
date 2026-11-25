@@ -9,7 +9,7 @@ from typing_extensions import Self
 __all__ = ["ALGORAND_MIN_TX_FEE", "AlgoAmount", "algo", "micro_algo", "transaction_fees"]
 
 
-class AlgoAmount:
+class AlgoAmount:  # noqa: PLW1641
     """Wrapper class to ensure safe, explicit conversion between µAlgo, Algo and numbers.
 
     :example:

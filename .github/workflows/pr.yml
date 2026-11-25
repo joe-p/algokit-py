@@ -1,0 +1,37 @@
+name: Pull Request
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: pr-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  # pytest-coverage-comment
+  pull-requests: write
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  changelog:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [algokit-utils-py, algokit-client-generator-py, algokit-subscriber-py]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+
+      - name: Check changelog
+        uses: joe-p/semfrag/actions/check@52b58d46a190e343201a202c9b4aab993e58b7b4 # v0.11.1
+        with:
+          changelog: ${{ matrix.package }}/CHANGELOG.md
+          fragments-dir: ${{ matrix.package }}/changelog.d
+          require-fragment-for: ^${{ matrix.package }}/src/

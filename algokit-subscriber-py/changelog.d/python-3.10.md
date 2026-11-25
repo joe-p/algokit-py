@@ -1,0 +1,3 @@
+## Features
+
+- Support Python 3.10 and 3.11

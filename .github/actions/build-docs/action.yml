@@ -1,0 +1,52 @@
+name: Build docs
+description: Generate a package's API docs with Sphinx and build its Starlight site into `<package>/docs/dist`.
+
+inputs:
+  package:
+    description: Directory of the package, e.g. `algokit-utils-py`
+    required: true
+  docs-site:
+    description: Origin the site is served from (`DOCS_SITE`). Empty uses the site's default.
+    required: false
+    default: ""
+  docs-base:
+    description: Path the site is served under (`DOCS_BASE`). Empty uses the site's standalone base path.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python environment
+      uses: algorandfoundation/algokit-shared-config/.github/actions/setup-algokit-python@main
+      with:
+        install-algokit: "false"
+        working-directory: ${{ inputs.package }}
+
+    - name: Set up Node.js 24
+      uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+      with:
+        node-version: "24.x"
+
+    - name: Set up pnpm
+      uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093 # v6
+      with:
+        package_json_file: ${{ inputs.package }}/docs/package.json
+
+    - name: Install docs dependencies
+      shell: bash
+      working-directory: ${{ inputs.package }}
+      run: pnpm install --frozen-lockfile --dir docs
+
+    - name: Generate API docs
+      shell: bash
+      working-directory: ${{ inputs.package }}
+      run: uv run poe docs-api
+
+    - name: Build Starlight site
+      shell: bash
+      working-directory: ${{ inputs.package }}
+      env:
+        DOCS_SITE: ${{ inputs.docs-site }}
+        DOCS_BASE: ${{ inputs.docs-base }}
+      run: pnpm --dir docs build

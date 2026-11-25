@@ -191,7 +191,7 @@ def _generate_deploy_params(context: GeneratorContext) -> tuple[list[str], list[
         if any(not m.abi for m in methods):
             type_names.append(f"{context.contract_name}BareCall{prefix}Params")
 
-        param_name = f"{method_type.split('_')[0]}_params"
+        param_name = f"{method_type.split('_')[0]}_params"  # noqa: PLC0207
         deploy_param_types.append(
             f"{param_name}: {(' | '.join(type_names) + ' | None') if type_names else 'None'} = None"
         )

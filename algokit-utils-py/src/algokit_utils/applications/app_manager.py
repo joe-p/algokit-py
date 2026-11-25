@@ -386,7 +386,8 @@ class AppManager:
         """
 
         if isinstance(box_id, (BoxReference | AlgosdkBoxReference)):
-            return box_id.app_index, box_id.name
+            # algosdk stores `name` as `bytes | bytearray`; it's only a bytearray if one was passed in.
+            return box_id.app_index, cast(bytes, box_id.name)
 
         name = b""
         if isinstance(box_id, str):

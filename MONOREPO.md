@@ -1,0 +1,240 @@
+# AlgoKit Python Monorepo
+
+This repository combines the following AlgoKit Python projects into a single monorepo:
+
+| Directory | Source repository |
+| ------------------------------ | ------------------------------------------------------------------------ |
+| `algokit-client-generator-py/` | https://github.com/algorandfoundation/algokit-client-generator-py |
+| `algokit-subscriber-py/` | https://github.com/algorandfoundation/algokit-subscriber-py |
+| `algokit-utils-py/` | https://github.com/algorandfoundation/algokit-utils-py |
+
+It follows the same layout and release process as [algokit-ts](https://github.com/algorandfoundation/algokit-ts).
+
+## Development
+
+The packages are members of one [uv workspace](https://docs.astral.sh/uv/concepts/projects/workspaces/), defined in the root `pyproject.toml`. The workspace root isn't a package and is never published. There's a single root `uv.lock` and `.venv`. Run commands from a package's directory, where `uv run` and `uv sync` use that package and its dev dependencies:
+
+```sh
+cd algokit-utils-py
+uv sync
+uv run pytest -n auto   # requires `algokit localnet start`
+```
+
+`uv sync --all-packages` from the root installs every package and all their dev dependencies.
+
+`algokit-client-generator-py` and `algokit-subscriber-py` use the workspace's `algokit-utils` (`[tool.uv.sources] algokit-utils = { workspace = true }`), like `workspace:*` in algokit-ts. Sources only apply to development: the published packages keep their `algokit-utils` ranges and install it from PyPI.
+
+Unlike pnpm, which replaces `workspace:*` with the released version when publishing, uv ignores the range on a workspace source, and nothing rewrites it on release. So the workspace could test client-generator against a utils version its published range excludes (e.g. a 5.x utils with `algokit-utils<5`), or against utils changes that older versions in the range don't have. Two checks cover this, both described under [CI](#ci): `.github/scripts/workspace_deps.py check` fails if a package's published range excludes the workspace version of another member, and client-generator is also tested against the lowest `algokit-utils` its range allows. When utils has a major release, widen the dependents' ranges; when a dependent starts using newer utils, raise its floor.
+
+`.pre-commit-config.yaml` is at the root, since pre-commit only reads the config at the repository root. It runs each package's hooks with that package's files, configuration and dev dependencies. Ruff runs on the changed files with `uv run --project <package>`, which finds the package's `pyproject.toml` from the file paths. mypy and the docstring check run from the package directory over the files configured in its `pyproject.toml`, as CI does. pre-commit itself runs as a tool (`uvx pre-commit install`) rather than as a dev dependency.
+
+### Dependency versions
+
+Like the pnpm catalog in algokit-ts, dev dependency versions are defined once, in `constraint-dependencies` in the root `pyproject.toml`. Each package lists its dev dependencies in its `[dependency-groups]` by name only, e.g. `"ruff"`, and the root constraint sets the version. To upgrade a dev dependency for every package, change its constraint and run `uv lock`. Constraints also apply to transitive dependencies, so floors that keep pip-audit off vulnerable versions (e.g. `pip`, `requests`) are constraints rather than dev dependencies. A constraint alone doesn't install anything; a package still has to list the dependency.
+
+Runtime `dependencies` keep their version ranges in each package's `pyproject.toml`, because they're published as the package's requirements, like `peerDependencies` in algokit-ts. Every package shares the root `uv.lock`, so each dependency still resolves to a single version across the workspace.
+
+To add a dev dependency, add its name to the package's dev group and its version range to the root constraints, then run `uv lock`. `uv add --dev` would write the version into the package instead.
+
+## CI
+
+`.github/workflows/ci.yml` runs on pull requests (`pr.yml`) and before every release (`release.yml`). It keeps each package's previous checks and Python versions:
+
+| Job | `algokit-utils-py` | `algokit-client-generator-py` | `algokit-subscriber-py` |
+| --- | --- | --- | --- |
+| `check`: ruff format and lint, mypy | 3.10, with the docstring check | 3.10, 3.11, 3.12 | 3.10, with the docstring check |
+| `test`: pytest against LocalNet, then `uv build` | 3.10, 3.11, 3.12 | 3.10, 3.11, 3.12 | 3.10 to 3.14, run serially |
+| `docs`: build the docs site | yes | (no site) | yes |
+
+A separate `audit` job checks that `uv.lock` is up to date (`uv lock --check`) and runs pip-audit once over the whole workspace (`uv sync --all-packages`). It uses Python 3.12: filelock's current advisories are only fixed in 4.x, which needs Python 3.11, so Python 3.10 environments keep filelock 3.x. filelock is a dev-only dependency of pip-audit. The `audit` job also runs `.github/scripts/workspace_deps.py check` (see [Development](#development)), which `release-package` runs again after bumping a version, so a release whose version a dependent's range excludes fails before anything is pushed.
+
+The `test` job runs client-generator a second time on Python 3.10 with the lowest `algokit-utils` its published range allows, installed from PyPI over the workspace's (`uv pip install`, then `uv run` with `UV_NO_SYNC`).
+
+The pytest coverage comment is posted once per package, from the lowest Python version, with the package name as its title.
+
+`ci.yml` inherits its permissions from the caller rather than setting them. The coverage comment needs `pull-requests: write`, which `pr.yml` grants, and a reusable workflow can't request a permission its caller doesn't have, so declaring it in `ci.yml` would break `release.yml`. A job can still drop permissions, so `audit`, `check` and `docs` set `contents: read`, rather than getting `release.yml`'s `contents: write` and `id-token: write`. `test` can't, because the coverage comment needs `pull-requests: write` from `pr.yml`.
+
+## Releases
+
+Each package is versioned and released independently with [semfrag](https://github.com/joe-p/semfrag), which replaced python-semantic-release. The packages share the sections in the root `semfrag.json`. Each package has its own `CHANGELOG.md` and `changelog.d/` directory.
+
+Every change to a package's `src/` needs a fragment in that package's `changelog.d/`. The PR workflow checks for one. A fragment is a markdown file with one or more of the sections from `semfrag.json`:
+
+```md
+## Fixes
+
+- Describe the change from the user's point of view
+```
+
+Fragment sections and the version bump each one triggers:
+
+| Section | Bump |
+| ------------------ | ----- |
+| `Breaking Changes` | major |
+| `Features` | minor |
+| `Fixes` | patch |
+
+The release workflow (`.github/workflows/release.yml`) runs after CI passes. It releases the packages one at a time, in dependency order: utils, client-generator, then subscriber. Each package with pending fragments is released like this:
+
+1. **Push to `main`**: the fragments are merged into the changelog and promoted to the next beta, e.g. `4.2.4-beta.5`, which is published to PyPI as a pre-release (`4.2.4b5`).
+1. **Manual run with *Stable release?* checked** (*Run workflow*, choosing all packages or one): the package's betas are promoted to a stable release, e.g. `4.2.4`, and published to PyPI. This replaces the old *Production release?* input of the `cd.yaml` workflows.
+
+A manual run with *Stable release?* unchecked (the default) publishes betas exactly like a push to `main`. Use it to retry a push's release that failed and was rolled back: the rollback's revert commit is marked `[skip ci]`, so no push run will release those fragments otherwise.
+
+Each release commits the changelog, the package's `pyproject.toml` version and the root `uv.lock` to `main`. The version is written with `uv version`, which uses the normalized PEP 440 form (`4.2.4b5`) and updates the package's entry in `uv.lock`. The package is built with `uv build --out-dir dist`, since a workspace member otherwise builds into the root `dist/`. Each release also creates a git tag and a GitHub release named after the package, for example `algokit-utils-v4.2.4`, `algokit-client-generator-v2.2.1` and `algokit-subscriber-v1.0.2`, with the built wheel and sdist attached.
+
+Releases start from the exact commit validated by CI. Each package job passes its release commit to the next job; jobs that have nothing to release pass their input commit through unchanged. If unrelated changes advance `main`, the run stops rather than including unvalidated code. A push arriving after the branch check is also protected by the release action's non-force push. Let the newer push's workflow validate and release the remaining changes. For a manual run, dispatch a new run from the latest `main` instead of rerunning the outdated run.
+
+To preview a release locally, run [`semfrag`](https://github.com/joe-p/semfrag#install) from a package directory: `semfrag generate --dry-run`. semfrag finds the root `semfrag.json` by searching the parent directories.
+
+### PyPI trusted publishing
+
+algokit-ts runs each package's release in a reusable workflow (`release-package.yml`). That doesn't work here, because [PyPI trusted publishing can't be used from a reusable workflow](https://github.com/pypa/gh-action-pypi-publish#trusted-publishing): `pypa/gh-action-pypi-publish` has to run in a job of the top-level workflow. Instead:
+
+- The shared steps (checking that `main` hasn't advanced, semfrag's prepare, the version bump, `uv build`, and semfrag's commit, tag and GitHub release) are the local composite action `.github/actions/release-package`.
+- Each package's job in `release.yml` calls that action, then `pypa/gh-action-pypi-publish` with `skip-existing: true`, then semfrag's rollback. The rollback is in the same job so a failed upload still rolls back the release; semfrag's actions share their state through the job environment.
+
+## Docs
+
+The `algokit-utils-py` and `algokit-subscriber-py` docs sites are published together to this repository's GitHub Pages site, each under its own path:
+
+| Path | Site |
+| -------------- | ------------------------------------------------ |
+| `/` | Landing page linking to each site, and to the `algokit-client-generator-py/docs` folder on GitHub (`.github/pages/index.html`) |
+| `/utils/` | `algokit-utils-py/docs` |
+| `/subscriber/` | `algokit-subscriber-py/docs` |
+
+The docs workflow (`.github/workflows/pages.yml`) runs on every push to `main` and can be run manually. It builds both sites, combines them with the landing page and deploys the result. A repository has only one Pages deployment, so every run rebuilds and replaces all the sites together. Each site is built by the local composite action `.github/actions/build-docs` (previously each repository's `publish-docs` action), which also runs in CI.
+
+Each site reads its URL from environment variables, set by the workflow from `actions/configure-pages` so the sites work under any repository name or custom domain:
+
+- `DOCS_SITE`: the origin, e.g. `https://algorandfoundation.github.io`.
+- `DOCS_BASE`: the path the site is served under, e.g. `/algokit-py/utils/`.
+
+Without them the sites fall back to their old standalone paths (`/algokit-utils-py/` and `/algokit-subscriber-py/`), so `uv run poe docs-dev` in a package works as before. To build a site the way it's deployed:
+
+```sh
+cd algokit-utils-py
+DOCS_BASE=/algokit-py/utils/ uv run poe docs-build
+```
+
+The docs sites keep their own `docs/package.json` and `docs/pnpm-lock.yaml`.
+
+### DevPortal
+
+The [Algorand Developer Portal](https://github.com/algorandfoundation/devportal) imports the same docs from a tarball, `devportal-docs.tar.gz`, attached to a rolling GitHub prerelease. The DevPortal docs workflow (`.github/workflows/devportal-docs.yml`) runs on every push to `main` and can be run manually. For each package it builds the docs site, packages its content, sidebar and a `manifest.json`, and uploads the tarball to that package's release:
+
+| Package | Release |
+| ----------------------- | -------------------------------- |
+| `algokit-utils-py` | `algokit-utils-docs-latest` |
+| `algokit-subscriber-py` | `algokit-subscriber-docs-latest` |
+
+The sites are built with their standalone base paths (`/algokit-utils-py/`, `/algokit-subscriber-py/`), which the manifest's `base` passes on so the DevPortal can rewrite links.
+
+## TODO
+
+Outstanding work from the move to a monorepo and semfrag:
+
+- [ ] **PyPI trusted publishing**: each project's trusted publisher on pypi.org still points at its old repository and its `cd.yaml` workflow. Add a trusted publisher for this repository with the workflow `release.yml` and no environment.
+- [ ] **Release bot**: `release.yml` uses the `BOT_ID` and `BOT_SK` secrets for the `engineering-ci[bot]` GitHub App, as the old workflows did. Add them to this repository, install the app on it, and allow it to push to `main` if the branch is protected.
+- [ ] **Old docs sites**: the `algokit-utils-py` and `algokit-subscriber-py` repositories still serve their last docs build at `algorandfoundation.github.io/algokit-utils-py/` and `/algokit-subscriber-py/`, and it won't be updated. The package READMEs now link to the new site. Turn off Pages in those repositories once the new site is live, or leave the old sites up for existing links.
+- [ ] **DevPortal import**: the DevPortal still imports `algokit-utils-py` and `algokit-subscriber-py` docs from the old repositories' `docs-latest` releases. Its import configs need to point at this repository and each package's own release (see [DevPortal](#devportal)), as for algokit-ts.
+- [ ] **Subscriber license**: `algokit-subscriber-py` has no `LICENSE` file or `license` field in its `pyproject.toml`, unlike the other two packages.
+- [ ] **Ruff findings**: aligning ruff on 0.15 (utils was on 0.11, client-generator on 0.12) flagged existing code, which was suppressed with `ruff check --add-noqa` so the rules stay on for new code: 79 findings in utils (mostly `FBT001`, boolean positional arguments in public signatures, plus `PLC0415`, `PLW0108`, `PLW1641`, `RUF059`, `RUF043`, `PYI059`) and 4 in client-generator. Review them separately, especially `PLW1641` (`__eq__` without `__hash__`).
+- [ ] **`AppManager.get_box_reference`**: mypy 2 found that it can return a `bytearray` name, since algosdk keeps a `bytearray` passed to `BoxReference` as-is, while it's annotated to return `bytes`. It's `cast` for now rather than changing the return value.
+- [ ] **Dependabot**: it's configured for the `uv` ecosystem at the root. Check that its updates touch `constraint-dependencies` in the root `pyproject.toml`; if they don't, dev dependency upgrades will need doing by hand.
+- [ ] **Links in docstrings**: two docstrings in `algokit-utils-py/src` link to files in the old repository that no longer exist (`docs/source/v3-migration-guide.md`, `docs/source/capabilities/dispenser-client.md`). They were left alone because changing `src/` needs a release fragment.
+
+## How the history was preserved
+
+Each project's full commit history reachable from its `main` branch was imported with a non-squashed subtree merge. Original commits, including their SHAs and signatures, are preserved. The monorepo is the only source of truth for future development; the imports do not require ongoing synchronization with the source repositories.
+
+Files in original commits retain their original root-level paths. The subtree import places them under each project's directory without rewriting those commits. Path-filtered commands such as `git log -- algokit-utils-py/src/...` do not automatically show the pre-import history; inspect an original import SHA with the original paths to explore that history.
+
+The import was done with `git subtree add` (without `--squash`):
+
+```sh
+# Start in a new, empty repository
+git init -b main
+git commit --allow-empty -m "chore: init monorepo"
+
+git subtree add --prefix=algokit-client-generator-py \
+  ../../algorandfoundation/algokit-client-generator-py e9aa0fed56bfcf37247b762adfcfbd503b8f7a9d
+git subtree add --prefix=algokit-subscriber-py \
+  ../../algorandfoundation/algokit-subscriber-py c6b1c59158b7a6b94f6578169b96ce4c698ca18a
+git subtree add --prefix=algokit-utils-py \
+  ../../algorandfoundation/algokit-utils-py 4bb8bde04aa890c23cdd067bd167c1f0375a632d
+```
+
+Notes:
+
+- Only commits reachable from each repo's `main` tip were imported. Unmerged branch history, including the newer development lines (utils `v5.0.0-*`, client-generator `v3.0.0-*`/`v4.0.0-*` and subscriber `v2.0.0-*`), was not imported.
+- The source repos were at the following commits when they were imported:
+  - `algokit-client-generator-py`: `e9aa0fe` (`2.2.1-beta.3`, 124 commits)
+  - `algokit-subscriber-py`: `c6b1c59` (`1.0.2-beta.1`, 169 commits)
+  - `algokit-utils-py`: `4bb8bde` (`4.2.4-beta.4`, 306 commits)
+- Each source repository's release tags that are ancestors of its imported `main` were imported with the package's tag prefix, pointing to the same original tag objects: `v4.2.3` is `algokit-utils-v4.2.3`, `v2.2.0` is `algokit-client-generator-v2.2.0` and `v1.0.1` is `algokit-subscriber-v1.0.1`. Tags from the unmerged development lines were not imported. For example:
+
+  ```sh
+  git fetch --no-tags ../../algorandfoundation/algokit-utils-py \
+    refs/tags/v4.2.3:refs/tags/algokit-utils-v4.2.3
+  ```
+
+## Changes
+
+Changes made to the imported projects after they were combined into this monorepo.
+
+### semfrag
+
+python-semantic-release was removed: the `[tool.semantic_release]` configuration, the `python-semantic-release` dev dependency, and client-generator's and subscriber's `release-preview` and `release-dry-run-beta` poe tasks. Removing it also removed its dependencies from each `uv.lock`. utils' `gitpython` dev dependency, which only existed to keep python-semantic-release's copy off a vulnerable version, was removed too.
+
+The changelogs were converted from python-semantic-release's format, because semfrag reads every version in the changelog and only accepts the sections in `semfrag.json`:
+
+- Each `## vX.Y.Z (YYYY-MM-DD)` heading became `# X.Y.Z - Month Dth, YYYY`.
+- `Fix`/`Bug Fixes`, `Feature`/`Features` and `Breaking` became `Fixes`, `Features` and `Breaking Changes`. Every other section (`Documentation`, `Chores`, `Continuous Integration`, and pull request descriptions that python-semantic-release copied in from merge commits) was dropped, along with each entry's commit-hash link. Issue and pull request links were kept. The original changelogs are in the imported history.
+- python-semantic-release only wrote stable releases to the changelog (subscriber's also had its `1.0.0` betas), so each changelog starts with the current beta, which semfrag continues from. Its notes come from the GitHub release: utils' `4.2.4-beta.4` lists the fixes released in its betas since `4.2.3`. Client-generator's `2.2.1-beta.3` and subscriber's `1.0.2-beta.1` only contain chores, so their headings are empty, like algokit-client-generator-ts's first semfrag release.
+- Subscriber's `1.0.1` and `1.0.0` were never in its changelog. Empty headings were added for them, dated from their GitHub releases. Its `1.0.0-beta.3` to `beta.6` were published after `1.0.0`, so the blocks are in date order rather than version order.
+- Client-generator's `1.0.0` listed "Initial release" three times; it's listed once, under `Breaking Changes`.
+
+utils' `uv.lock` recorded its version as `4.2.4b2`, since python-semantic-release bumped `pyproject.toml` without relocking. It's now `4.2.4b4`, matching `pyproject.toml`. Releases keep them in sync with `uv version`.
+
+### uv workspace
+
+The packages previously had their own `uv.lock` files, and shared tools had drifted apart (for example ruff 0.11 to 0.15, and mypy 1.20 to 2.1). They're now one uv workspace (see [Development](#development)):
+
+- **Python 3.10 for subscriber**: a workspace has one `requires-python`, the intersection of its members', so subscriber's `>=3.12` would have stopped utils and client-generator testing on 3.10 and 3.11. Subscriber only needed 3.12 for two helpers in `utils.py` that used type parameter syntax, now `TypeVar`s, and for its generated test client, whose generics ruff had rewritten to that syntax when it targeted 3.12. Subscriber now supports Python 3.10 and 3.11 (with a changelog fragment), and CI tests it on 3.10 to 3.14.
+- **Lockfiles**: the per-package `uv.lock` files were replaced by the root `uv.lock`. It was resolved fresh, so dependencies moved to the newest versions their ranges allow (for example `py-algorand-sdk` 2.11.1 to 2.12.0 and `pytest` 9.0.3 to 9.2.0).
+- **Shared dev dependencies** were aligned on the newest version any package used, and moved into the root constraints: ruff 0.15, mypy 2.1, pytest-cov 7, poethepoet 0.46 and pip-audit 2.10 (utils was on ruff 0.11, mypy 1.20, pytest-cov 6 and poethepoet 0.34; client-generator on ruff 0.12). Single-package dev dependencies kept their existing ranges.
+- **`workspace = true` links**: client-generator and subscriber previously installed `algokit-utils` 4.2.3 from PyPI for development. They now use the workspace's `algokit-utils`.
+
+Things that broke and how they were fixed:
+
+- **ruff 0.15** (utils and client-generator) flagged existing code. The findings were suppressed with `# noqa` comments (`ruff check --add-noqa`) rather than fixed, since most would change public signatures (see [TODO](#todo)). Two signatures in utils' `_legacy_v2` were reformatted so the comments sit on the flagged lines.
+- **mypy 2** (utils): `AppManager.get_box_reference` returns algosdk's `BoxReference.name`, which mypy now infers as `bytes | bytearray`. It's `cast` to the annotated `bytes`, without changing behavior.
+- **pre-commit and virtualenv**: pip-audit flagged virtualenv, which pre-commit depends on. The fixed version needs `packaging>=26.3`, but client-generator's `puyapy` dev dependency requires `packaging<25`, so the workspace can't resolve both. pre-commit only runs hooks that call `uv run` themselves, so it was removed from the dev dependencies and runs with `uvx pre-commit` instead.
+- **setuptools and filelock**: pip-audit flagged setuptools 83, which the `<84` pins kept, and filelock 3.x. setuptools moved to 84. filelock's fixes need Python 3.11, so the constraint is split by Python version, and CI's audit runs on 3.12 (see [CI](#ci)). These advisories also affect the source repositories' locks; the untouched client-generator lock fails pip-audit on virtualenv the same way.
+- **Builds**: `uv build` in a workspace member writes to the root `dist/`, so CI and releases build with `--out-dir dist`. The root `dist/` is also in `.gitignore`.
+- **Dependabot** updates the one workspace at `/` with the `uv` ecosystem, rather than each package with `pip`.
+
+### Workflows
+
+Each repository's `.github` directory was removed. The workflows that matter moved to the root as described above:
+
+| Old workflow | Replacement |
+| ------------ | ----------- |
+| `check-python.yaml`, `build-python.yaml`, `check-docs.yaml` | `ci.yml` |
+| `pr.yaml` | `pr.yml`, which also checks for changelog fragments |
+| `cd.yaml` (release) | `release.yml` and `.github/actions/release-package` |
+| `cd.yaml` (`deploy-docs`) | `pages.yml` |
+| `publish-devportal-docs.yml` | `devportal-docs.yml` |
+| `.github/actions/publish-docs` | `.github/actions/build-docs`, with a `package` input |
+
+`cd.yaml` skipped CI for commits whose message contained `skip-checks: true`, which python-semantic-release added to its release commits. Release commits are now skipped by actor (`engineering-ci[bot]`) and `[skip ci]`, as in algokit-ts. `cd.yaml` also ignored pushes that only changed `.github/`; `release.yml` runs on every push, but only releases packages with pending fragments.
+
+The issue templates, pull request template and Dependabot config were combined at the root. The issue templates ask which package the issue is about, and Dependabot updates each package's directory.
+
+### Docs
+
+- **Base path**: each `astro.config.mjs` reads `site` and `base` from `DOCS_SITE` and `DOCS_BASE`, falling back to the old values. It uses `||` rather than `??`, since the `build-docs` action passes an empty string when they aren't set.
+- **Hardcoded links** (utils): a few hand-written pages link to other pages, and to an image, with absolute paths starting `/algokit-utils-py/`. A remark plugin (`algokit-utils-py/docs/plugins/remark-rebase-links.mjs`) rewrites that prefix to the configured base at build time.
+- **Links**: links to files in the old repositories now point at this repository, and links to the old docs sites at the new ones. Two docs pages linked to tests that had moved to `legacy_v2_tests/`, and the utils migration guide linked to a client-generator migration guide under the wrong file name; those links were fixed. The GitHub links in the docs sites' headers point at each package's directory.

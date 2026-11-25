@@ -1,7 +1,7 @@
 from typing import Any, TypedDict
 
 from algosdk.transaction import Transaction
-from typing_extensions import NotRequired  # noqa: UP035
+from typing_extensions import NotRequired
 
 
 class BlockValueDelta(TypedDict):

@@ -54,7 +54,7 @@ def prepare_simulate_response_for_avm_debugger(obj: typing.Any) -> typing.Any:  
 
 
 @dataclass
-class AVMDebuggerSourceMapEntry:
+class AVMDebuggerSourceMapEntry:  # noqa: PLW1641
     location: str = field(metadata={"json": "sourcemap-location"})
     program_hash: str = field(metadata={"json": "hash"})
 
@@ -231,9 +231,9 @@ def persist_sourcemaps(
 def simulate_response(
     atc: AtomicTransactionComposer,
     algod_client: "AlgodClient",
-    allow_more_logs: bool | None = None,
-    allow_empty_signatures: bool | None = None,
-    allow_unnamed_resources: bool | None = None,
+    allow_more_logs: bool | None = None,  # noqa: FBT001
+    allow_empty_signatures: bool | None = None,  # noqa: FBT001
+    allow_unnamed_resources: bool | None = None,  # noqa: FBT001
     extra_opcode_budget: int | None = None,
     exec_trace_config: SimulateTraceConfig | None = None,
     simulation_round: int | None = None,
@@ -265,9 +265,9 @@ def simulate_and_persist_response(
     project_root: Path,
     algod_client: "AlgodClient",
     buffer_size_mb: float = 256,
-    allow_more_logs: bool | None = None,
-    allow_empty_signatures: bool | None = None,
-    allow_unnamed_resources: bool | None = None,
+    allow_more_logs: bool | None = None,  # noqa: FBT001
+    allow_empty_signatures: bool | None = None,  # noqa: FBT001
+    allow_unnamed_resources: bool | None = None,  # noqa: FBT001
     extra_opcode_budget: int | None = None,
     exec_trace_config: SimulateTraceConfig | None = None,
     simulation_round: int | None = None,

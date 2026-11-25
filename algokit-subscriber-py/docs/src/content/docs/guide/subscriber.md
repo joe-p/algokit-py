@@ -143,4 +143,4 @@ Once an error listener has been registered, the default listener is removed and 
 
 ## Examples
 
-See the [examples in the repository README](https://github.com/algorandfoundation/algokit-subscriber-py#examples).
+See the [examples in the repository README](https://github.com/algorandfoundation/algokit-py/tree/main/algokit-subscriber-py#examples).

@@ -18,23 +18,21 @@ algokitgen-py = "algokit_client_generator.cli:main"
 
 [dependency-groups]
 dev = [
-    "ruff>=0.8.6,<0.13.0",
+    "ruff",
     "mypy",
     "pytest",
     "pytest-cov",
-    "pip-audit>=2.5.5,<3",
-    "python-semantic-release>=10,<11",
-    "pre-commit>=3.3.2,<5.0.0",
-    "poethepoet>=0.20,<0.37",
-    "pytest-xdist>=3.5.0,<4",
-    "puyapy>=5.8.0,<6; python_version >= '3.12'",
-    "algorand-python>=3.4.0,<4; python_version >= '3.12'",
-    "setuptools>=83.0,<84.0",
-    "pytest-sugar>=1.0.0,<2",
+    "pip-audit",
+    "poethepoet",
+    "pytest-xdist",
+    "puyapy; python_version >= '3.12'",
+    "algorand-python; python_version >= '3.12'",
+    "setuptools",
+    "pytest-sugar",
 ]
 
 [build-system]
-requires = ["uv_build>=0.9.5,<0.12"]
+requires = ["uv_build>=0.13.9,<0.14"]
 build-backend = "uv_build"
 
 [tool.ruff]
@@ -122,18 +120,6 @@ suppress-none-returning = true
 [tool.poe.tasks]
 update-approvals = "uv run python -m scripts.update_approvals"
 
-[tool.poe.tasks.release-preview]
-sequence = [
-    # `git describe` only sees tags in the history of HEAD; `--print-last-released-tag` also reports the v3 line tags
-    { cmd = "git describe --tags --abbrev=0" },
-    { cmd = "uv run semantic-release version --print-tag --as-prerelease" },
-]
-help = "Preview current and next prerelease version"
-
-[tool.poe.tasks.release-dry-run-beta]
-shell = "uv run semantic-release --noop -vv version --as-prerelease --prerelease-token beta --print-tag"
-help = "Dry-run beta release (no changes made)"
-
 [tool.pytest.ini_options]
 pythonpath = ["src", "tests"]
 
@@ -153,34 +139,5 @@ implicit_reexport = false
 show_error_codes = true
 disable_error_code = ['return']
 
-[tool.semantic_release]
-version_toml = ["pyproject.toml:project.version"]
-build_command = "uv build"
-major_on_zero = true
-commit_message = "{version}\n\nskip-checks: true"
-tag_format = "v{version}"
-
-[tool.semantic_release.branches.main]
-match = "main"
-prerelease_token = "beta"
-prerelease = false
-
-[tool.semantic_release.commit_parser_options]
-allowed_tags = [
-    "build",
-    "chore",
-    "ci",
-    "docs",
-    "feat",
-    "fix",
-    "perf",
-    "style",
-    "refactor",
-    "test",
-]
-minor_tags = ["feat"]
-patch_tags = ["fix", "perf", "build", "chore", "refactor"]
-
-[tool.semantic_release.remote]
-type = "github"
-token = { env = "GH_TOKEN" }
+[tool.uv.sources]
+algokit-utils = { workspace = true }

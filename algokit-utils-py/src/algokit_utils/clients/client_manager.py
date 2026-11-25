@@ -238,7 +238,7 @@ class ClientManager:
         :raises ValueError: If no Algorand client is configured
         :return: Application factory instance
         """
-        from algokit_utils.applications.app_factory import AppFactory, AppFactoryParams
+        from algokit_utils.applications.app_factory import AppFactory, AppFactoryParams  # noqa: PLC0415
 
         if not self._algorand:
             raise ValueError("Attempt to get app factory from a ClientManager without an Algorand client")
@@ -277,7 +277,7 @@ class ClientManager:
         :raises ValueError: If no Algorand client is configured
         :return: Application client instance
         """
-        from algokit_utils.applications.app_client import AppClient, AppClientParams
+        from algokit_utils.applications.app_client import AppClient, AppClientParams  # noqa: PLC0415
 
         if not self._algorand:
             raise ValueError("Attempt to get app client from a ClientManager without an Algorand client")
@@ -315,7 +315,7 @@ class ClientManager:
         :raises ValueError: If no Algorand client is configured
         :return: Application client instance
         """
-        from algokit_utils.applications.app_client import AppClient
+        from algokit_utils.applications.app_client import AppClient  # noqa: PLC0415
 
         if not self._algorand:
             raise ValueError("Attempt to get app client from a ClientManager without an Algorand client")
@@ -337,7 +337,7 @@ class ClientManager:
         app_spec: Arc56Contract | ApplicationSpecification | str,
         default_sender: str | None = None,
         default_signer: TransactionSigner | None = None,
-        ignore_cache: bool | None = None,
+        ignore_cache: bool | None = None,  # noqa: FBT001
         app_lookup_cache: ApplicationLookup | None = None,
         approval_source_map: SourceMap | None = None,
         clear_source_map: SourceMap | None = None,
@@ -355,7 +355,7 @@ class ClientManager:
         :param clear_source_map: Optional clear program source map
         :return: Application client instance
         """
-        from algokit_utils.applications.app_client import AppClient
+        from algokit_utils.applications.app_client import AppClient  # noqa: PLC0415
 
         return AppClient.from_creator_and_name(
             creator_address=creator_address,

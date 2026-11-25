@@ -343,7 +343,7 @@ class ApplicationClient:
         )
 
         if config.debug and config.project_root:
-            from algokit_utils._debugging import PersistSourceMapInput, persist_sourcemaps
+            from algokit_utils._debugging import PersistSourceMapInput, persist_sourcemaps  # noqa: PLC0415
 
             persist_sourcemaps(
                 sources=[
@@ -379,7 +379,7 @@ class ApplicationClient:
         self,
         atc: AtomicTransactionComposer,
         /,
-        call_abi_method: ABIMethod | bool | None = None,
+        call_abi_method: ABIMethod | bool | None = None,  # noqa: FBT001
         transaction_parameters: CreateCallParameters | CreateCallParametersDict | None = None,
         **abi_kwargs: ABIArgType,
     ) -> None:
@@ -424,14 +424,14 @@ class ApplicationClient:
     @overload
     def create(
         self,
-        call_abi_method: ABIMethod | bool | None = ...,
+        call_abi_method: ABIMethod | bool | None = ...,  # noqa: FBT001
         transaction_parameters: CreateCallParameters | CreateCallParametersDict | None = ...,
         **abi_kwargs: ABIArgType,
     ) -> TransactionResponse | ABITransactionResponse: ...
 
     def create(
         self,
-        call_abi_method: ABIMethod | bool | None = None,
+        call_abi_method: ABIMethod | bool | None = None,  # noqa: FBT001
         transaction_parameters: CreateCallParameters | CreateCallParametersDict | None = None,
         **abi_kwargs: ABIArgType,
     ) -> TransactionResponse | ABITransactionResponse:
@@ -453,7 +453,7 @@ class ApplicationClient:
         self,
         atc: AtomicTransactionComposer,
         /,
-        call_abi_method: ABIMethod | bool | None = None,
+        call_abi_method: ABIMethod | bool | None = None,  # noqa: FBT001
         transaction_parameters: TransactionParameters | TransactionParametersDict | None = None,
         **abi_kwargs: ABIArgType,
     ) -> None:
@@ -488,14 +488,14 @@ class ApplicationClient:
     @overload
     def update(
         self,
-        call_abi_method: ABIMethod | bool | None = ...,
+        call_abi_method: ABIMethod | bool | None = ...,  # noqa: FBT001
         transaction_parameters: TransactionParameters | TransactionParametersDict | None = ...,
         **abi_kwargs: ABIArgType,
     ) -> TransactionResponse | ABITransactionResponse: ...
 
     def update(
         self,
-        call_abi_method: ABIMethod | bool | None = None,
+        call_abi_method: ABIMethod | bool | None = None,  # noqa: FBT001
         transaction_parameters: TransactionParameters | TransactionParametersDict | None = None,
         **abi_kwargs: ABIArgType,
     ) -> TransactionResponse | ABITransactionResponse:
@@ -514,7 +514,7 @@ class ApplicationClient:
         self,
         atc: AtomicTransactionComposer,
         /,
-        call_abi_method: ABIMethod | bool | None = None,
+        call_abi_method: ABIMethod | bool | None = None,  # noqa: FBT001
         transaction_parameters: TransactionParameters | TransactionParametersDict | None = None,
         **abi_kwargs: ABIArgType,
     ) -> None:
@@ -546,14 +546,14 @@ class ApplicationClient:
     @overload
     def delete(
         self,
-        call_abi_method: ABIMethod | bool | None = ...,
+        call_abi_method: ABIMethod | bool | None = ...,  # noqa: FBT001
         transaction_parameters: TransactionParameters | TransactionParametersDict | None = ...,
         **abi_kwargs: ABIArgType,
     ) -> TransactionResponse | ABITransactionResponse: ...
 
     def delete(
         self,
-        call_abi_method: ABIMethod | bool | None = None,
+        call_abi_method: ABIMethod | bool | None = None,  # noqa: FBT001
         transaction_parameters: TransactionParameters | TransactionParametersDict | None = None,
         **abi_kwargs: ABIArgType,
     ) -> TransactionResponse | ABITransactionResponse:
@@ -572,7 +572,7 @@ class ApplicationClient:
         self,
         atc: AtomicTransactionComposer,
         /,
-        call_abi_method: ABIMethod | bool | None = None,
+        call_abi_method: ABIMethod | bool | None = None,  # noqa: FBT001
         transaction_parameters: OnCompleteCallParameters | OnCompleteCallParametersDict | None = None,
         **abi_kwargs: ABIArgType,
     ) -> None:
@@ -604,14 +604,14 @@ class ApplicationClient:
     @overload
     def call(
         self,
-        call_abi_method: ABIMethod | bool | None = ...,
+        call_abi_method: ABIMethod | bool | None = ...,  # noqa: FBT001
         transaction_parameters: OnCompleteCallParameters | OnCompleteCallParametersDict | None = ...,
         **abi_kwargs: ABIArgType,
     ) -> TransactionResponse | ABITransactionResponse: ...
 
     def call(
         self,
-        call_abi_method: ABIMethod | bool | None = None,
+        call_abi_method: ABIMethod | bool | None = None,  # noqa: FBT001
         transaction_parameters: OnCompleteCallParameters | OnCompleteCallParametersDict | None = None,
         **abi_kwargs: ABIArgType,
     ) -> TransactionResponse | ABITransactionResponse:
@@ -632,7 +632,7 @@ class ApplicationClient:
             hints = self._method_hints(method)
             if hints and hints.read_only:
                 if config.debug and config.project_root and config.trace_all:
-                    from algokit_utils._debugging import simulate_and_persist_response
+                    from algokit_utils._debugging import simulate_and_persist_response  # noqa: PLC0415
 
                     simulate_and_persist_response(
                         atc, config.project_root, self.algod_client, config.trace_buffer_size_mb
@@ -646,7 +646,7 @@ class ApplicationClient:
         self,
         atc: AtomicTransactionComposer,
         /,
-        call_abi_method: ABIMethod | bool | None = None,
+        call_abi_method: ABIMethod | bool | None = None,  # noqa: FBT001
         transaction_parameters: TransactionParameters | TransactionParametersDict | None = None,
         **abi_kwargs: ABIArgType,
     ) -> None:
@@ -677,14 +677,14 @@ class ApplicationClient:
     @overload
     def opt_in(
         self,
-        call_abi_method: ABIMethod | bool | None = ...,
+        call_abi_method: ABIMethod | bool | None = ...,  # noqa: FBT001
         transaction_parameters: TransactionParameters | TransactionParametersDict | None = ...,
         **abi_kwargs: ABIArgType,
     ) -> TransactionResponse | ABITransactionResponse: ...
 
     def opt_in(
         self,
-        call_abi_method: ABIMethod | bool | None = None,
+        call_abi_method: ABIMethod | bool | None = None,  # noqa: FBT001
         transaction_parameters: TransactionParameters | TransactionParametersDict | None = None,
         **abi_kwargs: ABIArgType,
     ) -> TransactionResponse | ABITransactionResponse:
@@ -702,7 +702,7 @@ class ApplicationClient:
         self,
         atc: AtomicTransactionComposer,
         /,
-        call_abi_method: ABIMethod | bool | None = None,
+        call_abi_method: ABIMethod | bool | None = None,  # noqa: FBT001
         transaction_parameters: TransactionParameters | TransactionParametersDict | None = None,
         **abi_kwargs: ABIArgType,
     ) -> None:
@@ -733,14 +733,14 @@ class ApplicationClient:
     @overload
     def close_out(
         self,
-        call_abi_method: ABIMethod | bool | None = ...,
+        call_abi_method: ABIMethod | bool | None = ...,  # noqa: FBT001
         transaction_parameters: TransactionParameters | TransactionParametersDict | None = ...,
         **abi_kwargs: ABIArgType,
     ) -> TransactionResponse | ABITransactionResponse: ...
 
     def close_out(
         self,
-        call_abi_method: ABIMethod | bool | None = None,
+        call_abi_method: ABIMethod | bool | None = None,  # noqa: FBT001
         transaction_parameters: TransactionParameters | TransactionParametersDict | None = None,
         **abi_kwargs: ABIArgType,
     ) -> TransactionResponse | ABITransactionResponse:
@@ -835,7 +835,10 @@ class ApplicationClient:
                 raise TypeError("Unable to interpret default argument specification")
 
     def _get_app_deploy_metadata(
-        self, version: str | None, allow_update: bool | None, allow_delete: bool | None
+        self,
+        version: str | None,
+        allow_update: bool | None,  # noqa: FBT001
+        allow_delete: bool | None,  # noqa: FBT001
     ) -> au_deploy.AppDeployMetaData:
         updatable = (
             allow_update
@@ -869,7 +872,7 @@ class ApplicationClient:
             )
 
         if config.debug and config.project_root:
-            from algokit_utils._debugging import PersistSourceMapInput, persist_sourcemaps
+            from algokit_utils._debugging import PersistSourceMapInput, persist_sourcemaps  # noqa: PLC0415
 
             persist_sourcemaps(
                 sources=[
@@ -890,7 +893,7 @@ class ApplicationClient:
     def _simulate_readonly_call(
         self, method: Method, atc: AtomicTransactionComposer
     ) -> ABITransactionResponse | TransactionResponse:
-        from algokit_utils._debugging import simulate_response
+        from algokit_utils._debugging import simulate_response  # noqa: PLC0415
 
         response = simulate_response(atc, self.algod_client)
         traces = None
@@ -935,7 +938,7 @@ class ApplicationClient:
 
     def _resolve_method(
         self,
-        abi_method: ABIMethod | bool | None,
+        abi_method: ABIMethod | bool | None,  # noqa: FBT001
         args: ABIArgsDict | None,
         on_complete: transaction.OnComplete,
         call_config: au_spec.CallConfig = au_spec.CallConfig.CALL,
@@ -1001,7 +1004,7 @@ class ApplicationClient:
     def add_method_call(  # noqa: PLR0913
         self,
         atc: AtomicTransactionComposer,
-        abi_method: ABIMethod | bool | None = None,
+        abi_method: ABIMethod | bool | None = None,  # noqa: FBT001
         *,
         abi_args: ABIArgsDict | None = None,
         app_id: int | None = None,
@@ -1288,7 +1291,7 @@ def execute_atc_with_logic_error(
     {py:class}`LogicError`
     ```
     """
-    from algokit_utils._debugging import simulate_and_persist_response, simulate_response
+    from algokit_utils._debugging import simulate_and_persist_response, simulate_response  # noqa: PLC0415
 
     try:
         if config.debug and config.project_root and config.trace_all:

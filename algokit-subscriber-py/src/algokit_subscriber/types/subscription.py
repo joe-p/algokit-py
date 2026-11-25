@@ -2,7 +2,7 @@ from collections.abc import Callable
 from enum import Enum
 from typing import Any, Literal, TypedDict, Union
 
-from typing_extensions import NotRequired  # noqa: UP035
+from typing_extensions import NotRequired
 
 from .arc28 import Arc28EventGroup, EmittedArc28Event
 from .indexer import TransactionResult
